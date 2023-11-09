@@ -28,7 +28,7 @@ MiscWorkerData = DataOriginal %>%
 
 # Assignment 1
 
-The task is to build a model to predict hourly earnings. I select 'Miscellaneous agricultural workers, including animal breeders' (*occ2012* = 6050) to be my population of interest. \
+The task is to build a model to predict hourly earnings. I select 'Miscellaneous agricultural workers, including animal breeders' (*occ2012* = 6050) to be my population of interest.\
 
 Firstly, I describe the variables that will be used in constructing the models. Then, the details of each model are presented along with the performance. Finally, I discuss the obtained results.
 
@@ -104,3 +104,9 @@ I discard *lfsr94* since every observations in my sample is employed in the prev
 *ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful.
 
 ### Transformed Variables
+
+## Model Building
+
+## Performance
+
+## Discussion
