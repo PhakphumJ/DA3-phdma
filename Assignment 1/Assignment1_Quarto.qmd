@@ -160,6 +160,22 @@ The generated variables are:
 
 ## Model Building
 
+I use correlations between the target variable and features to help ordering which variables enter into the models.
+
+```{r}
+#| echo: false
+## Selecting drop irrelevant variables
+WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, ethnic, sex, marital, chldpres, prcitshp, state, occ2012, class, unionmme, unioncov, lfsr94))
+```
+
+```{r}
+#| echo: false
+
+# Calculating correlations.
+
+
+```
+
 ## Performance
 
 ## Discussion
