@@ -99,7 +99,7 @@ I discard *chldpres* since it is highly correlated with *ownchild*.
 
 I discard *unionmme* and *unioncov* since 99% of the sample have these two variables = 0.
 
-I discard *lfsr94* since every observations in my sample is employed in the previous week.
+I discard *lfsr94* since every observations in my sample are employed in the previous week.
 
 *ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful. It also contains many categories. If included, we would lose quite degree of freedom.
 
@@ -127,12 +127,12 @@ MiscWorkerData = MiscWorkerData %>% mutate(nevmarr = case_when(marital == 7 ~ 1,
 MiscWorkerData = MiscWorkerData %>% mutate(male = case_when(sex == 1 ~ 1, sex != 1 ~ 0))
 
 # grouping citizen ship status. (1. Foreign Born, Not a US Citizen 2. Foreign Born, US Cit By Naturalization 3. Native) - use Native as baseline
-MiscWorkerData = MiscWorkerData %>% mutate(noncitiz = case_when(prcitshp == 1 ~ 1, prcitshp != 1 ~ 0))
+MiscWorkerData = MiscWorkerData %>% mutate(noncitiz = case_when(prcitshp == 'Foreign Born, Not a US Citizen' ~ 1, prcitshp != 'Foreign Born, Not a US Citizen' ~ 0))
 
-MiscWorkerData = MiscWorkerData %>% mutate(natura = case_when(prcitshp == 2 ~ 1, prcitshp != 2 ~ 0))
+MiscWorkerData = MiscWorkerData %>% mutate(natura = case_when(prcitshp == 'Foreign Born, US Cit By Naturalization' ~ 1, prcitshp != 'Foreign Born, US Cit By Naturalization' ~ 0))
 
 # grouping classes of worker (1. Private, For Profit, 2. Others) use Others as the baseline
-MiscWorkerData = MiscWorkerData %>% mutate(forprofit = case_when(class == 4 ~ 1, class != 4 ~ 0))
+MiscWorkerData = MiscWorkerData %>% mutate(forprofit = case_when(class == 'Private, For Profit' ~ 1, class != 'Private, For Profit' ~ 0))
 
 ```
 
