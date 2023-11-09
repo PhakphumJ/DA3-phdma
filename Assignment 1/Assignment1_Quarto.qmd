@@ -1,8 +1,234 @@
 ---
-title: "Assignment1wage_PP"
+title: "Assignment_1_Wage_PhakphumJ"
 author: "Phakphum Jatupitpornchan"
 format: html
 editor: visual
 ---
 
+```{r}
+#| warning: false
+#| echo: false
+
+rm(list=ls())
+
+setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction with Machine Learning/Assignment/DA3-phdma/Assignment 1")
+
+library(readr)
+library(dplyr)
+
+# Importing the data
+
+DataOriginal <- read_csv("morg-2014-emp.csv")
+
+# Filter - only select 'Miscellaneous agricultural workers, including animal breeders' - 6050
+
+MiscWorkerData = DataOriginal %>%
+  filter(occ2012 == 6050)
+```
+
 # Assignment 1
+
+The task is to build a model to predict hourly earnings. I select 'Miscellaneous agricultural workers, including animal breeders' (*occ2012* = 6050) to be my population of interest.\
+
+Firstly, I describe the variables that will be used in constructing the models. Then, the details of each model are presented along with the performance. Finally, I discuss the obtained results.
+
+## Data Dictionary
+
+### Original Variables
+
+This section describes the meaning of each variable that will be used in this modelling exercise.
+
+-   stfips: State codes
+
+-   weight: Final Weight
+
+-   earnwke: Earnings per week
+
+-   uhours: Working hours per week
+
+-   grade92: Highest grade attended; **It is not numerical variable**. (e.g. 31 = Less than 1st grade, 32 = 1st - 4th grade)
+
+```{r}
+#| echo: false
+MiscWorkerData %>% count(grade92)
+```
+
+I will group some education levels above together later.
+
+-   race: Race (1 = White, 2 = Black, 3 = American Indian (AI), 4 = Asian, 5 = Hawaiian/Pacific Islander, 6 = White-Black, 7 = White-AI, 8 = White-Asian)
+
+    ```{r}
+    #| echo = FALSE
+
+    ## I run this code to see what races are there in this dataset
+    MiscWorkerData %>% count(race)
+    ```
+
+I will group some races above together later.
+
+-   age: Age
+
+-   sex: Sex (1 = male, 2 = female)
+
+-   marital: Marital Status (1 = Married civilian spouse present, 2 = Married Armed Foruces spouse present, 3 = Married spouse absent or separated, 4 = Widowed or divorced(Through 88), 5 = Widowed (After 88), 6 = Separated , 7 = Never Married)
+
+    ```{r}
+    #| echo: false
+    MiscWorkerData %>% count(marital)
+    ```
+
+I will group some marital statuses above together later.
+
+-   ownchild: Number of own children **less than** **18** in primary family
+
+-   prcitshp: Citizenship status
+
+    ```{r}
+    #| echo: false
+    MiscWorkerData %>% count(prcitshp)
+    ```
+
+I will group some citizenship statuses above together later.
+
+-   ind02: 3-digit NAICS-based industry code
+
+-   class: Class of worker
+
+    ```{r}
+    #| echo: false
+    MiscWorkerData %>% count(class)
+    ```
+
+I will group some classes above together later.\
+ 
+
+I discard *chldpres* since it is highly correlated with *ownchild*.
+
+I discard *unionmme* and *unioncov* since 99% of the sample have these two variables = 0.
+
+I discard *lfsr94* since every observations in my sample are employed in the previous week.
+
+*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful. It also contains many categories. If included, we would lose quite degree of freedom.
+
+### Generated Variables
+
+```{r}
+#| echo: false
+# Defining the target variable
+MiscWorkerData = MiscWorkerData %>% mutate(earnhr = earnwke/uhours)
+
+# grouping race. (1. white 2. black 3. non-white/black)
+# Create is_white and is_black variables - use non-white/black as baseline
+
+MiscWorkerData = MiscWorkerData %>% mutate(is_white = case_when(race == 1 ~ 1, race != 1 ~ 0), is_black = case_when(race == 2 ~ 1, race != 2 ~ 0))
+
+# grouping marital statuses. (1. Married with spouse present 2. Married with spouse absent or seperated 3. Widowed or divorced 4. Never Married) - leave the first category out to be baseline
+
+MiscWorkerData = MiscWorkerData %>% mutate(marr_abs = case_when(marital == 3 ~ 1, marital != 3 ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(wid_div = case_when(marital == 4 | marital == 5 | marital == 6 ~ 1, marital != 4 | marital != 5 | marital != 6 ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(nevmarr = case_when(marital == 7 ~ 1, marital != 7 ~ 0))
+
+# Recode gender 1 = male, 0 = female. Use female as baseline
+MiscWorkerData = MiscWorkerData %>% mutate(male = case_when(sex == 1 ~ 1, sex != 1 ~ 0))
+
+# grouping citizen ship status. (1. Foreign Born, Not a US Citizen 2. Foreign Born, US Cit By Naturalization 3. Native) - use Native as baseline
+MiscWorkerData = MiscWorkerData %>% mutate(noncitiz = case_when(prcitshp == 'Foreign Born, Not a US Citizen' ~ 1, prcitshp != 'Foreign Born, Not a US Citizen' ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(natura = case_when(prcitshp == 'Foreign Born, US Cit By Naturalization' ~ 1, prcitshp != 'Foreign Born, US Cit By Naturalization' ~ 0))
+
+# grouping classes of worker (1. Private, For Profit, 2. Others) use Others as the baseline
+MiscWorkerData = MiscWorkerData %>% mutate(forprofit = case_when(class == 'Private, For Profit' ~ 1, class != 'Private, For Profit' ~ 0))
+
+# grouping education levels (1. 6th grade or less 2. 7th - 12th grade but NO Diploma, 3. High school graduate, diploma or GED 4. Some college but no degree 5. Associate degree 6. Bachelor's degree or more) - use 6th grade or less as baseline
+MiscWorkerData = MiscWorkerData %>% mutate(than7nodip = case_when(between(grade92, 34, 38) ~ 1, !between(grade92, 34, 38) ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(HS_GED = case_when(grade92 == 39 ~ 1, grade92 != 39 ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(Col_ND = case_when(grade92 == 40 ~ 1, grade92 != 40 ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(asscd = case_when(between(grade92, 41, 42) ~ 1, !between(grade92, 41, 42) ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(Bach_more = case_when(grade92 >= 43 ~ 1, !grade92 >= 43 ~ 0))
+```
+
+The generated variables are:
+
+-   earnhr: Earning per hour **(This is the target variable)**
+
+#### Race
+
+-   is_white: 1 if race is white; 0 otherwise
+
+-   is_black: 1 if race is black; 0 otherwise
+
+#### Marital Status
+
+-   marr_abs: 1 if married with spouse absent or separated; 0 otherwise
+
+-   wid_div: 1 if widowed or divorced; 0 otherwise
+
+-   nevmarr: 1 if never married; 0 otherwise
+
+#### Gender
+
+-   male: 1 if male; 0 otherwise
+
+#### Citizenship Status
+
+-   noncitiz: 1 if not a US citizen; 0 otherwise
+
+-   natura: 1 if Foreign Born, US citizen by Naturalization; 0 otherwise
+
+#### Class
+
+-   forprofit: 1 if working in private in for-profit private organization; 0 otherwise
+
+#### Education Level
+
+-   than7nodip: 1 if 7th - 12th grade but NO Diploma; 0 otherwise
+
+-   HS_GED: 1 if High school graduate, diploma or GED; 0 otherwise
+
+-   Col_ND: 1 if Some college but no degree;; 0 otherwise
+
+-   asscd: 1 if Associate degree; 0 otherwise
+
+-   Bach_more: 1 if Bachelor's degree or more; 0 otherwise
+
+## Model Building
+
+I use correlations between the target variable and features to help ordering which variables enter into the models.
+
+```{r}
+#| echo: false
+## Selecting drop irrelevant variables
+WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, ethnic, sex, marital, chldpres, prcitshp, state, occ2012, class, unionmme, unioncov, lfsr94, grade92))
+```
+
+```{r}
+#| echo: false
+#| warning: false
+
+# Calculating correlations matrix. (Only numeric variables)
+correlations = cor(WorkingData[,-c(1,2,6)])
+
+# select only correlation y and x
+target_correlations = correlations["earnhr", ]
+
+# put it in a nice table.
+target_correlations <- data.frame(
+  Feature = colnames(correlations),
+  Correlation = correlations["earnhr", ]
+)
+```
+
+```{r}
+# Print the correlations
+print(target_correlations[2])
+```
+
+## Performance
+
+## Discussion
