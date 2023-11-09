@@ -28,6 +28,10 @@ MiscWorkerData = DataOriginal %>%
 
 # Assignment 1
 
+The task is to build a model to predict hourly earnings. I select 'Miscellaneous agricultural workers, including animal breeders' (*occ2012* = 6050) to be my population of interest. \
+
+Firstly, I describe the variables that will be used in constructing the models. Then, the details of each model are presented along with the performance. Finally, I discuss the obtained results.
+
 ## Data Dictionary
 
 ### Original Variables
@@ -53,7 +57,7 @@ This section describes the meaning of each variable that will be used in this mo
     MiscWorkerData %>% count(race)
     ```
 
-I will group some races above together later
+I will group some races above together later.
 
 -   age: Age
 
@@ -66,7 +70,7 @@ I will group some races above together later
     MiscWorkerData %>% count(marital)
     ```
 
-I will group some marital statuses above together later
+I will group some marital statuses above together later.
 
 -   ownchild: Number of own children **less than** **18** in primary family
 -   prcitshp: Citizenship status
@@ -76,7 +80,7 @@ I will group some marital statuses above together later
 MiscWorkerData %>% count(prcitshp)
 ```
 
-I will group some citizenship statuses above together later
+I will group some citizenship statuses above together later.
 
 -   ind02: 3-digit NAICS-based industry code
 
@@ -87,8 +91,16 @@ I will group some citizenship statuses above together later
 MiscWorkerData %>% count(class)
 ```
 
-I will group some classes above together later
+I will group some classes above together later.
 
--   unionmme: Is a member of a labor union or an employee association similar to a union
+\
+
+I discard *chldpres* since it is highly correlated with *ownchild*.
+
+I discard *unionmme* and *unioncov* since 99% of the sample have these two variables = 0.
+
+I discard *lfsr94* since every observations in my sample is employed in the previous week.
+
+*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful.
 
 ### Transformed Variables
