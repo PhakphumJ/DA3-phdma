@@ -1,5 +1,5 @@
 ---
-title: "Assignment1_Wage_PhakphumJ"
+title: "Assignment_1_Wage_PhakphumJ"
 author: "Phakphum Jatupitpornchan"
 format: html
 editor: visual
@@ -73,12 +73,13 @@ I will group some races above together later.
 I will group some marital statuses above together later.
 
 -   ownchild: Number of own children **less than** **18** in primary family
+
 -   prcitshp: Citizenship status
 
-```{r}
-#| echo: false
-MiscWorkerData %>% count(prcitshp)
-```
+    ```{r}
+    #| echo: false
+    MiscWorkerData %>% count(prcitshp)
+    ```
 
 I will group some citizenship statuses above together later.
 
@@ -86,14 +87,13 @@ I will group some citizenship statuses above together later.
 
 -   class: Class of worker
 
-```{r}
-#| echo: false
-MiscWorkerData %>% count(class)
-```
+    ```{r}
+    #| echo: false
+    MiscWorkerData %>% count(class)
+    ```
 
-I will group some classes above together later.
-
-\
+I will group some classes above together later.\
+ 
 
 I discard *chldpres* since it is highly correlated with *ownchild*.
 
@@ -103,7 +103,40 @@ I discard *lfsr94* since every observations in my sample is employed in the prev
 
 *ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful.
 
-### Transformed Variables
+### Generated / Transformed Variables
+
+```{r}
+#| echo: false
+# Defining the target variable
+MiscWorkerData = MiscWorkerData %>% mutate(earnhr = earnwke/uhours)
+
+# grouping race. (1. white 2. black 3. non-white/black)
+# Create is_white and is_black variables - use non-white/black as baseline
+
+MiscWorkerData = MiscWorkerData %>% mutate(is_white = case_when(race == 1 ~ 1, race != 1 ~ 0), is_black = case_when(race == 2 ~ 1, race != 2 ~ 0))
+
+# grouping marital statuses. (1. Married with spouse present 2. Married with spouse absent or seperated 3. Widowed or divorced 4. Never Married) - leave the first category out to be baseline
+
+MiscWorkerData = MiscWorkerData %>% mutate(marr_abs = case_when(marital == 3 ~ 1, marital != 3 ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(wid_div = case_when(marital == 4 | marital == 5 | marital == 6 ~ 1, marital != 4 | marital != 5 | marital != 6 ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(nevmarr = case_when(marital == 7 ~ 1, marital != 7 ~ 0))
+
+# Recode gender 1 = male, 0 = female. Use female as baseline
+MiscWorkerData = MiscWorkerData %>% mutate(male = case_when(sex == 1 ~ 1, sex != 1 ~ 0))
+
+# grouping citizen ship status. (1. Foreign Born, Not a US Citizen 2. Foreign Born, US Cit By Naturalization 3. Native) - use Native as baseline
+MiscWorkerData = MiscWorkerData %>% mutate(noncitiz = case_when(prcitshp == 1 ~ 1, prcitshp != 1 ~ 0))
+
+MiscWorkerData = MiscWorkerData %>% mutate(natura = case_when(prcitshp == 2 ~ 1, prcitshp != 2 ~ 0))
+
+# grouping classes of worker (1. Private, For Profit, 2. Others) use Others as the baseline
+MiscWorkerData = MiscWorkerData %>% mutate(forprofit = case_when(class == 4 ~ 1, class != 4 ~ 0))
+
+```
+
+The target variable: (earnings per hour)
 
 ## Model Building
 
