@@ -103,7 +103,7 @@ I discard *lfsr94* since every observations in my sample is employed in the prev
 
 *ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful.
 
-### Generated / Transformed Variables
+### Generated Variables
 
 ```{r}
 #| echo: false
@@ -136,7 +136,27 @@ MiscWorkerData = MiscWorkerData %>% mutate(forprofit = case_when(class == 4 ~ 1,
 
 ```
 
-The target variable: (earnings per hour)
+The generated variables are:
+
+-   earnhr: Earning per hour **(This is the target variable)**
+
+-   is_white: 1 if race is white; 0 otherwise
+
+-   is_black: 1 if race is black; 0 otherwise
+
+-   marr_abs: 1 if married with spouse absent or separated; 0 otherwise
+
+-   wid_div: 1 if widowed or divorced; 0 otherwise
+
+-   nevmarr: 1 if never married; 0 otherwise
+
+-   male: 1 if male; 0 otherwise
+
+-   noncitiz: 1 if not a US citizen; 0 otherwise
+
+-   natura: 1 if Foreign Born, US citizen by Naturalization; 0 otherwise
+
+-   forprofit: 1 if working in private in for-profit private organization; 0 otherwise
 
 ## Model Building
 
