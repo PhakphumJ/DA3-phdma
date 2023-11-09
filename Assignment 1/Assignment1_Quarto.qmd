@@ -101,7 +101,7 @@ I discard *unionmme* and *unioncov* since 99% of the sample have these two varia
 
 I discard *lfsr94* since every observations in my sample is employed in the previous week.
 
-*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful.
+*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful. It also contains many categories. If included, we would lose quite degree of freedom.
 
 ### Generated Variables
 
@@ -170,10 +170,24 @@ WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, 
 
 ```{r}
 #| echo: false
+#| warning: false
 
-# Calculating correlations.
+# Calculating correlations matrix. (Only numeric variables)
+correlations = cor(WorkingData[,-c(1,2,7)])
 
+# select only correlation y and x
+target_correlations = correlations["earnhr", ]
 
+# put it in a nice table.
+target_correlations <- data.frame(
+  Feature = colnames(correlations),
+  Correlation = correlations["earnhr", ]
+)
+```
+
+```{r}
+# Print the correlations
+print(target_correlations[2])
 ```
 
 ## Performance
