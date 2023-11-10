@@ -19,6 +19,7 @@ library(ggplot2)
 library(weights)
 library(caret)
 
+
 # Importing the data
 
 DataOriginal <- read_csv("morg-2014-emp.csv")
@@ -246,6 +247,7 @@ target_correlations <- data.frame(correlations)
 ```
 
 ```{r}
+#| echo: false
 # Print the correlations
 print(target_correlations)
 ```
@@ -263,24 +265,42 @@ Essentially, age, marital status, citizenship status, and education level are us
 &nbsp;\
 which means adding working hours, race, and class of worker to **Model 1**\
 
-**Model 3:** **Model 2** + *(male, ind02)*\
+**Model 3:** **Model 2** + *(male, ownchild)*\
 &nbsp;\
-meaning that I accounted for fixed characteristics of each industry & gender.\
+meaning that I add gender and number of children to the model.\
 
-**Model 4:** **Model 3** + *(Minwage, male)*\
+**Model 4:** **Model 3** + *(Minwage, ind02)*\
 &nbsp; \
-adding the variables with least correlations with *earnhr* to the model. \
+accounts for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated \
 
 ```{r}
+#| echo: false
+#| warning: false
+## Doing One-Hot Encoding to ind02 to get dummies
+# Assuming your data is stored in a variable called 'data' and the nominal variable is 'nominal_variable'
+dummy_data <- dummyVars(~ ind02, data = WorkingData)
+
+# Apply the transformation to your data
+data_encoded <- predict(dummy_data, newdata = WorkingData)
+
+WorkingData = cbind(WorkingData, data_encoded)
+
+```
+
+
+```{r}
+#| echo: false
+#| warning: false
 # Doing 5-folds CV
-set.seed(20231110)
+set.seed(2023)
 # Getting index for splitting data
 folds <- createFolds(WorkingData$earnhr, k = 5, list = TRUE, returnTrain = FALSE)
 
 ```
 
 ```{r}
-attach(WorkingData)
+#| echo: false
+#| warning: false
 ## Estimating Models and obtains results (5-folds CV)
 # Model 1
 results <- list()
@@ -289,7 +309,7 @@ for (i in 1:5) {
   test_data <- WorkingData[folds[[i]], ]
   
   # Train your OLS model
-  model_1 <- lm(earnhr ~ age + marr_abs + wid_div + nevmarr + noncitiz + natura + than7nodip + HS_GED + Col_ND + asscd + Bach_more, weights = weight) 
+  model_1 <- lm(earnhr ~ age + marr_abs + wid_div + nevmarr + noncitiz + natura + than7nodip + HS_GED + Col_ND + asscd + Bach_more, weights = weight, data = train_data) 
   # Assuming 'target_variable' is the variable you're trying to predict, 
   # and you want to use all other variables as predictors
   
@@ -340,7 +360,7 @@ for (i in 1:5) {
   test_data <- WorkingData[folds[[i]], ]
   
   # Train your OLS model
-  model_3 <- update(model_2, .~. + male, ind02) 
+  model_3 <- update(model_2, .~. + male, ownchild)
   # Assuming 'target_variable' is the variable you're trying to predict, 
   # and you want to use all other variables as predictors
   
@@ -365,7 +385,7 @@ for (i in 1:5) {
   test_data <- WorkingData[folds[[i]], ]
   
   # Train your OLS model
-  model_4 <- update(model_3, .~. + Minwage, male) 
+  model_4 <- lm(earnhr ~ . -weight, weights = weight, data = train_data[, -c(5)])
   # Assuming 'target_variable' is the variable you're trying to predict, 
   # and you want to use all other variables as predictors
   
