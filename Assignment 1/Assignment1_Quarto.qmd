@@ -267,11 +267,11 @@ which means adding working hours, race, and class of worker to **Model 1** These
 
 **Model 3:** **Model 2** + *(male, ownchild)*\
 &nbsp;\
-meaning that I add gender and number of children to the model.\
+adding gender and number of children to the model.\
 
 **Model 4:** **Model 3** + *(Minwage, ind02)*\
 &nbsp; \
-accounts for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated \
+accounting for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated \
 
 ```{r}
 #| echo: false
@@ -403,6 +403,10 @@ RMSE_CV_Model4 = sqrt(mean(unlist(results)))
 
 ```
 ```{r}
+#| echo: false
+#| warning: false
+
+
 ## Estimating using the whole sample. Get BIC and RMSE
 
 ## Model 1
@@ -415,6 +419,8 @@ predictions <- predict(model_1, newdata = WorkingData)
 # Calculate performance metric RMSE
 rmse_full_Model1 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
 
+# Calculate BIC
+BIC_full_Model1 <- BIC(model_1)
 
 ## Model 2
 model_2 <- update(model_1, .~. + uhours, is_white, is_black, forprofit) 
@@ -426,6 +432,9 @@ predictions <- predict(model_2, newdata = WorkingData)
 # Calculate performance metric RMSE
 rmse_full_Model2 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
 
+# Calculate BIC
+BIC_full_Model2 <- BIC(model_2)
+
 ## Model 3
 model_3 <- update(model_2, .~. + male, ownchild)
 
@@ -436,6 +445,9 @@ predictions <- predict(model_3, newdata = WorkingData)
 # Calculate performance metric RMSE
 rmse_full_Model3 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
 
+# Calculate BIC
+BIC_full_Model3 <- BIC(model_3)
+
 ## Model 4
 model_4 <- lm(earnhr ~ . -weight, weights = weight, data = WorkingData[, -c(5)])
 
@@ -445,6 +457,9 @@ predictions <- predict(model_4, newdata = WorkingData)
   
 # Calculate performance metric RMSE
 rmse_full_Model4 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+# Calculate BIC
+BIC_full_Model4 <- BIC(model_4)
 
 
 ```
