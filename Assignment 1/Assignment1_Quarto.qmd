@@ -108,7 +108,7 @@ I discard *unionmme* and *unioncov* since 99% of the sample have these two varia
 
 I discard *lfsr94* since every observations in my sample are employed in the previous week.
 
-*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful. It also contains many categories. If included, we would lose quite degree of freedom.
+*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful. It also contains 8 categories. If included, we would lose quite some degree of freedom.
 
 ### Generated Variables
 
@@ -151,6 +151,18 @@ MiscWorkerData = MiscWorkerData %>% mutate(Col_ND = case_when(grade92 == 40 ~ 1,
 MiscWorkerData = MiscWorkerData %>% mutate(asscd = case_when(between(grade92, 41, 42) ~ 1, !between(grade92, 41, 42) ~ 0))
 
 MiscWorkerData = MiscWorkerData %>% mutate(Bach_more = case_when(grade92 >= 43 ~ 1, !grade92 >= 43 ~ 0))
+```
+
+```{r}
+#| warning: false
+#| echo: false
+
+
+## Added data about minimum wages
+minwage = read_csv("Minwage_2014.csv")
+
+# Left join into the main data
+MiscWorkerData <- MiscWorkerData %>% left_join(minwage, by = c("stfips" = "State"))
 ```
 
 The generated variables are:
@@ -197,6 +209,14 @@ The generated variables are:
 
 -   Bach_more: 1 if Bachelor's degree or more; 0 otherwise
 
+#### Minimum Wage
+
+The sample comes from 50 states. While each state may have different social and economic environment, we would lose significant degree of freedom if we use *stfips*. To compromise, I opt to use data on minimum wages of each state instead. I use the published data on government website and asked ChatGPT to clean it [^1].
+
+[^1]: The data is from :https://www.dol.gov/agencies/whd/state/minimum-wage/history . The recorded process with ChatGPT can be accessed by: https://chat.openai.com/share/dd30493f-c0f8-4b6e-ba9e-ea05e228c719
+
+-   Minwage: the minimum wages in each states in 2014.
+
 ## Model Building
 
 I use correlations between the target variable and features to help ordering which variables enter into the models.
@@ -204,7 +224,7 @@ I use correlations between the target variable and features to help ordering whi
 ```{r}
 #| echo: false
 ## Selecting drop irrelevant variables
-WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, ethnic, sex, marital, chldpres, prcitshp, state, occ2012, class, unionmme, unioncov, lfsr94, grade92))
+WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, ethnic, sex, marital, chldpres, prcitshp, state, occ2012, class, unionmme, unioncov, lfsr94, grade92, stfips))
 ```
 
 ```{r}
@@ -212,7 +232,7 @@ WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, 
 #| warning: false
 
 # Calculating correlations matrix. (Only numeric variables)
-correlations = cor(WorkingData[,-c(1,2,6)])
+correlations = cor(WorkingData[,-c(1,5)])
 
 # select only correlation y and x
 target_correlations = correlations["earnhr", ]
