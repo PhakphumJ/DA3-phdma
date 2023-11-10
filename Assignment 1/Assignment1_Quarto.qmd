@@ -464,7 +464,31 @@ BIC_full_Model4 <- BIC(model_4)
 
 ```
 
-
 ## Performance
+
+```{r}
+#| echo: false
+## Compile the performance indicators into a table
+ColNames = c('RMSE in full sample', 'CV RMSE', 'BIC in full sample')
+
+# Creating a dataframe
+Sum_results <- data.frame(Column1 = c(rmse_full_Model1, rmse_full_Model2, rmse_full_Model3, rmse_full_Model4),
+                           Column2 = c(RMSE_CV_Model1, RMSE_CV_Model2, RMSE_CV_Model3, RMSE_CV_Model4),
+                           Column3 = c(BIC_full_Model1, BIC_full_Model2, BIC_full_Model3, BIC_full_Model4))
+
+
+# Adding row names
+rownames(Sum_results) <- c("Model 1", "Model 2", "Model 3","Model 4")
+
+# Adding column names
+colnames(Sum_results) <- ColNames
+
+```
+
+```{r}
+#| echo: false
+print(Sum_results)
+```
+
 
 ## Discussion
