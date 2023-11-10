@@ -263,7 +263,7 @@ Essentially, age, marital status, citizenship status, and education level are us
 **Model 2:** **Model 1** + *(uhours, is_white, is_black, forprofit)*\
 &nbsp;\ 
 &nbsp;\
-which means adding working hours, race, and class of worker to **Model 1**\
+which means adding working hours, race, and class of worker to **Model 1** These variables have the next highest values of correlations.\
 
 **Model 3:** **Model 2** + *(male, ownchild)*\
 &nbsp;\
@@ -286,7 +286,6 @@ data_encoded <- predict(dummy_data, newdata = WorkingData)
 WorkingData = cbind(WorkingData, data_encoded)
 
 ```
-
 
 ```{r}
 #| echo: false
@@ -401,6 +400,52 @@ for (i in 1:5) {
   
   # Get average RMSE
 RMSE_CV_Model4 = sqrt(mean(unlist(results)))
+
+```
+```{r}
+## Estimating using the whole sample. Get BIC and RMSE
+
+## Model 1
+model_1 <- lm(earnhr ~ age + marr_abs + wid_div + nevmarr + noncitiz + natura + than7nodip + HS_GED + Col_ND + asscd + Bach_more, weights = weight, data = WorkingData) 
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_1, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model1 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+
+## Model 2
+model_2 <- update(model_1, .~. + uhours, is_white, is_black, forprofit) 
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_2, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model2 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+## Model 3
+model_3 <- update(model_2, .~. + male, ownchild)
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_3, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model3 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+## Model 4
+model_4 <- lm(earnhr ~ . -weight, weights = weight, data = WorkingData[, -c(5)])
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_4, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model4 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
 
 ```
 
