@@ -15,6 +15,8 @@ setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction wit
 
 library(readr)
 library(dplyr)
+library(ggplot2)
+library(weights)
 
 # Importing the data
 
@@ -249,6 +251,7 @@ target_correlations <- data.frame(
 print(target_correlations[2])
 ```
 
+
 **The specification of each model is:**
 
 **Model 1:** *earnhr* = *f(age, marr_abs, wid_div, nevmarr, noncitiz, natura, than7nodip, HS_GED, Col_ND, asscd, Bach_more)* \
@@ -266,7 +269,8 @@ which means adding working hours, race, and class of worker to **Model 1**\
 meaning that I accounted for variation in minimum wages among states and characteristics of each industry.\
 
 **Model 4:** **Model 3** + *(ownchild, male)*\
-&nbsp;\ adding the variables with least correlations with *earnhr* to the model. \
+&nbsp; \
+adding the variables with least correlations with *earnhr* to the model. \
 
 
 
