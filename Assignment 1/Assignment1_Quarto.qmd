@@ -15,6 +15,10 @@ setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction wit
 
 library(readr)
 library(dplyr)
+library(ggplot2)
+library(weights)
+library(caret)
+
 
 # Importing the data
 
@@ -108,7 +112,7 @@ I discard *unionmme* and *unioncov* since 99% of the sample have these two varia
 
 I discard *lfsr94* since every observations in my sample are employed in the previous week.
 
-*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful. It also contains many categories. If included, we would lose quite degree of freedom.
+*ethnic* is also discarded since it mainly describes the ethnicity of Hispanic workers ,which I think might not be very useful. It also contains 8 categories. If included, we would lose quite some degree of freedom.
 
 ### Generated Variables
 
@@ -151,6 +155,18 @@ MiscWorkerData = MiscWorkerData %>% mutate(Col_ND = case_when(grade92 == 40 ~ 1,
 MiscWorkerData = MiscWorkerData %>% mutate(asscd = case_when(between(grade92, 41, 42) ~ 1, !between(grade92, 41, 42) ~ 0))
 
 MiscWorkerData = MiscWorkerData %>% mutate(Bach_more = case_when(grade92 >= 43 ~ 1, !grade92 >= 43 ~ 0))
+```
+
+```{r}
+#| warning: false
+#| echo: false
+
+
+## Added data about minimum wages
+minwage = read_csv("Minwage_2014.csv")
+
+# Left join into the main data
+MiscWorkerData <- MiscWorkerData %>% left_join(minwage, by = c("stfips" = "State"))
 ```
 
 The generated variables are:
@@ -197,6 +213,14 @@ The generated variables are:
 
 -   Bach_more: 1 if Bachelor's degree or more; 0 otherwise
 
+#### Minimum Wage
+
+The sample comes from 50 states. While each state may have different social and economic environment, we would lose significant degree of freedom if we use *stfips*. To compromise, I opt to use data on minimum wages of each state instead. I use published data on the government website and asked ChatGPT to clean it [^1].
+
+[^1]: The data is from :https://www.dol.gov/agencies/whd/state/minimum-wage/history; the recorded process with ChatGPT can be accessed by: https://chat.openai.com/share/dd30493f-c0f8-4b6e-ba9e-ea05e228c719
+
+-   Minwage: the minimum wages in each states in 2014.
+
 ## Model Building
 
 I use correlations between the target variable and features to help ordering which variables enter into the models.
@@ -204,30 +228,182 @@ I use correlations between the target variable and features to help ordering whi
 ```{r}
 #| echo: false
 ## Selecting drop irrelevant variables
-WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, ethnic, sex, marital, chldpres, prcitshp, state, occ2012, class, unionmme, unioncov, lfsr94, grade92))
+WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, ethnic, sex, marital, chldpres, prcitshp, state, occ2012, class, unionmme, unioncov, lfsr94, grade92, stfips))
 ```
+
 
 ```{r}
 #| echo: false
 #| warning: false
 
 # Calculating correlations matrix. (Only numeric variables)
-correlations = cor(WorkingData[,-c(1,2,6)])
+# weighted correlations
+data_mat = as.matrix(WorkingData[,-c(5)])
 
-# select only correlation y and x
-target_correlations = correlations["earnhr", ]
+correlations = wtd.cors(x = data_mat[,-c(1)], y = data_mat[,5], weight = data_mat[,1])
 
-# put it in a nice table.
-target_correlations <- data.frame(
-  Feature = colnames(correlations),
-  Correlation = correlations["earnhr", ]
-)
+# Put it into table
+target_correlations <- data.frame(correlations)
 ```
 
 ```{r}
+#| echo: false
 # Print the correlations
-print(target_correlations[2])
+print(target_correlations)
 ```
+
+
+**The specification of each model is:**
+
+**Model 1:** *earnhr* = *f(age, marr_abs, wid_div, nevmarr, noncitiz, natura, than7nodip, HS_GED, Col_ND, asscd, Bach_more)* \
+&nbsp;\
+Essentially, age, marital status, citizenship status, and education level are used. These features have the highest correlation with *earnhr*\
+
+
+**Model 2:** **Model 1** + *(uhours, is_white, is_black, forprofit)*\
+&nbsp;\ 
+&nbsp;\
+which means adding working hours, race, and class of worker to **Model 1**\
+
+**Model 3:** **Model 2** + *(male, ownchild)*\
+&nbsp;\
+meaning that I add gender and number of children to the model.\
+
+**Model 4:** **Model 3** + *(Minwage, ind02)*\
+&nbsp; \
+accounts for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated \
+
+```{r}
+#| echo: false
+#| warning: false
+## Doing One-Hot Encoding to ind02 to get dummies
+# Assuming your data is stored in a variable called 'data' and the nominal variable is 'nominal_variable'
+dummy_data <- dummyVars(~ ind02, data = WorkingData)
+
+# Apply the transformation to your data
+data_encoded <- predict(dummy_data, newdata = WorkingData)
+
+WorkingData = cbind(WorkingData, data_encoded)
+
+```
+
+
+```{r}
+#| echo: false
+#| warning: false
+# Doing 5-folds CV
+set.seed(2023)
+# Getting index for splitting data
+folds <- createFolds(WorkingData$earnhr, k = 5, list = TRUE, returnTrain = FALSE)
+
+```
+
+```{r}
+#| echo: false
+#| warning: false
+## Estimating Models and obtains results (5-folds CV)
+# Model 1
+results <- list()
+for (i in 1:5) {
+  train_data <- WorkingData[-folds[[i]], ]
+  test_data <- WorkingData[folds[[i]], ]
+  
+  # Train your OLS model
+  model_1 <- lm(earnhr ~ age + marr_abs + wid_div + nevmarr + noncitiz + natura + than7nodip + HS_GED + Col_ND + asscd + Bach_more, weights = weight, data = train_data) 
+  # Assuming 'target_variable' is the variable you're trying to predict, 
+  # and you want to use all other variables as predictors
+  
+  # Test your model
+  predictions <- predict(model_1, newdata = test_data)
+  
+  # Calculate performance metric MSE
+  mse <- mean((test_data$earnhr - predictions)^2)
+  
+  # Store the results
+  results[[i]] <- mse
+}
+  
+  # Get average RMSE
+RMSE_CV_Model1 = sqrt(mean(unlist(results)))
+  
+
+# Model 2
+results <- list()
+for (i in 1:5) {
+  train_data <- WorkingData[-folds[[i]], ]
+  test_data <- WorkingData[folds[[i]], ]
+  
+  # Train your OLS model
+  model_2 <- update(model_1, .~. + uhours, is_white, is_black, forprofit) 
+  # Assuming 'target_variable' is the variable you're trying to predict, 
+  # and you want to use all other variables as predictors
+  
+  # Test your model
+  predictions <- predict(model_2, newdata = test_data)
+  
+  # Calculate performance metric MSE
+  mse <- mean((test_data$earnhr - predictions)^2)
+  
+  # Store the results
+  results[[i]] <- mse
+}
+  
+  # Get average RMSE
+RMSE_CV_Model2 = sqrt(mean(unlist(results)))
+
+
+# Model 3
+
+results <- list()
+for (i in 1:5) {
+  train_data <- WorkingData[-folds[[i]], ]
+  test_data <- WorkingData[folds[[i]], ]
+  
+  # Train your OLS model
+  model_3 <- update(model_2, .~. + male, ownchild)
+  # Assuming 'target_variable' is the variable you're trying to predict, 
+  # and you want to use all other variables as predictors
+  
+  # Test your model
+  predictions <- predict(model_3, newdata = test_data)
+  
+  # Calculate performance metric MSE
+  mse <- mean((test_data$earnhr - predictions)^2)
+  
+  # Store the results
+  results[[i]] <- mse
+}
+  
+  # Get average RMSE
+RMSE_CV_Model3 = sqrt(mean(unlist(results)))
+
+
+#Model 4
+results <- list()
+for (i in 1:5) {
+  train_data <- WorkingData[-folds[[i]], ]
+  test_data <- WorkingData[folds[[i]], ]
+  
+  # Train your OLS model
+  model_4 <- lm(earnhr ~ . -weight, weights = weight, data = train_data[, -c(5)])
+  # Assuming 'target_variable' is the variable you're trying to predict, 
+  # and you want to use all other variables as predictors
+  
+  # Test your model
+  predictions <- predict(model_4, newdata = test_data)
+  
+  # Calculate performance metric MSE
+  mse <- mean((test_data$earnhr - predictions)^2)
+  
+  # Store the results
+  results[[i]] <- mse
+}
+  
+  # Get average RMSE
+RMSE_CV_Model4 = sqrt(mean(unlist(results)))
+
+```
+
 
 ## Performance
 
