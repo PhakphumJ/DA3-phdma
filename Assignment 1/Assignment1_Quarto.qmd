@@ -18,6 +18,8 @@ library(dplyr)
 library(ggplot2)
 library(weights)
 library(caret)
+library(kableExtra)
+library(tidyr)
 
 
 # Importing the data
@@ -263,15 +265,15 @@ Essentially, age, marital status, citizenship status, and education level are us
 **Model 2:** **Model 1** + *(uhours, is_white, is_black, forprofit)*\
 &nbsp;\ 
 &nbsp;\
-which means adding working hours, race, and class of worker to **Model 1**\
+which means adding working hours, race, and class of worker to **Model 1** These variables have the next highest values of correlations.\
 
 **Model 3:** **Model 2** + *(male, ownchild)*\
 &nbsp;\
-meaning that I add gender and number of children to the model.\
+adding gender and number of children to the model.\
 
 **Model 4:** **Model 3** + *(Minwage, ind02)*\
 &nbsp; \
-accounts for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated \
+accounting for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated \
 
 ```{r}
 #| echo: false
@@ -286,7 +288,6 @@ data_encoded <- predict(dummy_data, newdata = WorkingData)
 WorkingData = cbind(WorkingData, data_encoded)
 
 ```
-
 
 ```{r}
 #| echo: false
@@ -403,8 +404,124 @@ for (i in 1:5) {
 RMSE_CV_Model4 = sqrt(mean(unlist(results)))
 
 ```
+```{r}
+#| echo: false
+#| warning: false
 
+
+## Estimating using the whole sample. Get BIC and RMSE
+
+## Model 1
+model_1 <- lm(earnhr ~ age + marr_abs + wid_div + nevmarr + noncitiz + natura + than7nodip + HS_GED + Col_ND + asscd + Bach_more, weights = weight, data = WorkingData) 
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_1, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model1 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+# Calculate BIC
+BIC_full_Model1 <- BIC(model_1)
+
+## Model 2
+model_2 <- update(model_1, .~. + uhours, is_white, is_black, forprofit) 
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_2, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model2 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+# Calculate BIC
+BIC_full_Model2 <- BIC(model_2)
+
+## Model 3
+model_3 <- update(model_2, .~. + male, ownchild)
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_3, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model3 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+# Calculate BIC
+BIC_full_Model3 <- BIC(model_3)
+
+## Model 4
+model_4 <- lm(earnhr ~ . -weight, weights = weight, data = WorkingData[, -c(5)])
+
+# Calculate RMSE in full sample
+
+predictions <- predict(model_4, newdata = WorkingData)
+  
+# Calculate performance metric RMSE
+rmse_full_Model4 <- sqrt(mean((WorkingData$earnhr - predictions)^2))
+
+# Calculate BIC
+BIC_full_Model4 <- BIC(model_4)
+
+
+```
 
 ## Performance
+
+```{r}
+#| echo: false
+## Compile the performance indicators into a table
+ColNames = c('RMSE in full sample', 'RMSE CV', 'BIC in full sample')
+
+# Creating a dataframe
+Sum_results <- data.frame(Column1 = c(rmse_full_Model1, rmse_full_Model2, rmse_full_Model3, rmse_full_Model4),
+                           Column2 = c(RMSE_CV_Model1, RMSE_CV_Model2, RMSE_CV_Model3, RMSE_CV_Model4),
+                           Column3 = c(BIC_full_Model1, BIC_full_Model2, BIC_full_Model3, BIC_full_Model4))
+
+
+# Adding row names
+rownames(Sum_results) <- c("Model 1", "Model 2", "Model 3","Model 4")
+
+# Adding column names
+colnames(Sum_results) <- ColNames
+
+```
+
+```{r}
+#| echo: false
+kable(Sum_results, align = "c")
+```
+```{r}
+#| echo: false
+## plot RMSE
+
+# Convert it to long format
+Sum_results = cbind(c("Model 1", "Model 2", "Model 3","Model 4") , Sum_results)
+colnames(Sum_results)[1] <- 'Model'
+
+data_long <- gather(Sum_results, key = "Metric", value = "Value", -Model)
+
+```
+
+```{r}
+#| echo: false
+#| fig-align: center
+
+# Filter the data to include only "RMSE in full sample" and "RMSE CV"
+df_plot <- data_long[data_long$Metric %in% c("RMSE in full sample", "RMSE CV"), ]
+
+# Create a line plot
+ggplot(df_plot, aes(x = Model, y = Value, color = Metric, group = Metric)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "RMSE in Full Sample and RMSE CV for Each Model",
+       x = "Model",
+       y = "Value") +
+  scale_color_manual(values = c("RMSE in full sample" = "blue", "RMSE CV" = "red")) +   scale_y_continuous(limits = c(2, 8)) +  # Set y-axis limits + 
+  theme_minimal() + theme(plot.title = element_text(size = 20), axis.text = element_text(size = 10))  # Adjust the title font size
+```
+
+
+
 
 ## Discussion
