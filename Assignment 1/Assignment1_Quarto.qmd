@@ -18,6 +18,7 @@ library(dplyr)
 library(ggplot2)
 library(weights)
 library(caret)
+library(kableExtra)
 
 
 # Importing the data
@@ -487,8 +488,10 @@ colnames(Sum_results) <- ColNames
 
 ```{r}
 #| echo: false
-print(Sum_results)
+kable(Sum_results, align = "c")
 ```
+
+
 
 
 ## Discussion
