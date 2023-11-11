@@ -19,6 +19,7 @@ library(ggplot2)
 library(weights)
 library(caret)
 library(kableExtra)
+library(tidyr)
 
 
 # Importing the data
@@ -470,7 +471,7 @@ BIC_full_Model4 <- BIC(model_4)
 ```{r}
 #| echo: false
 ## Compile the performance indicators into a table
-ColNames = c('RMSE in full sample', 'CV RMSE', 'BIC in full sample')
+ColNames = c('RMSE in full sample', 'RMSE CV', 'BIC in full sample')
 
 # Creating a dataframe
 Sum_results <- data.frame(Column1 = c(rmse_full_Model1, rmse_full_Model2, rmse_full_Model3, rmse_full_Model4),
@@ -489,6 +490,35 @@ colnames(Sum_results) <- ColNames
 ```{r}
 #| echo: false
 kable(Sum_results, align = "c")
+```
+```{r}
+#| echo: false
+## plot RMSE
+
+# Convert it to long format
+Sum_results = cbind(c("Model 1", "Model 2", "Model 3","Model 4") , Sum_results)
+colnames(Sum_results)[1] <- 'Model'
+
+data_long <- gather(Sum_results, key = "Metric", value = "Value", -Model)
+
+```
+
+```{r}
+#| echo: false
+#| fig-align: center
+
+# Filter the data to include only "RMSE in full sample" and "RMSE CV"
+df_plot <- data_long[data_long$Metric %in% c("RMSE in full sample", "RMSE CV"), ]
+
+# Create a line plot
+ggplot(df_plot, aes(x = Model, y = Value, color = Metric, group = Metric)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "RMSE in Full Sample and RMSE CV for Each Model",
+       x = "Model",
+       y = "Value") +
+  scale_color_manual(values = c("RMSE in full sample" = "blue", "RMSE CV" = "red")) +   scale_y_continuous(limits = c(2, 8)) +  # Set y-axis limits + 
+  theme_minimal() + theme(plot.title = element_text(size = 20), axis.text = element_text(size = 10))  # Adjust the title font size
 ```
 
 
