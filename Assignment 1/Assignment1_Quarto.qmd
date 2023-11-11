@@ -233,7 +233,6 @@ I use correlations between the target variable and features to help ordering whi
 WorkingData = MiscWorkerData %>% select(-c(...1, hhid, intmonth, earnwke, race, ethnic, sex, marital, chldpres, prcitshp, state, occ2012, class, unionmme, unioncov, lfsr94, grade92, stfips))
 ```
 
-
 ```{r}
 #| echo: false
 #| warning: false
@@ -254,26 +253,23 @@ target_correlations <- data.frame(correlations)
 print(target_correlations)
 ```
 
-
 **The specification of each model is:**
 
-**Model 1:** *earnhr* = *f(age, marr_abs, wid_div, nevmarr, noncitiz, natura, than7nodip, HS_GED, Col_ND, asscd, Bach_more)* \
-&nbsp;\
+**Model 1:** *earnhr* = *f(age, marr_abs, wid_div, nevmarr, noncitiz, natura, than7nodip, HS_GED, Col_ND, asscd, Bach_more)*\
+ \
 Essentially, age, marital status, citizenship status, and education level are used. These features have the highest correlation with *earnhr*\
 
-
 **Model 2:** **Model 1** + *(uhours, is_white, is_black, forprofit)*\
-&nbsp;\ 
-&nbsp;\
+    \
 which means adding working hours, race, and class of worker to **Model 1** These variables have the next highest values of correlations.\
 
 **Model 3:** **Model 2** + *(male, ownchild)*\
-&nbsp;\
+ \
 adding gender and number of children to the model.\
 
 **Model 4:** **Model 3** + *(Minwage, ind02)*\
-&nbsp; \
-accounting for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated \
+ \
+accounting for the variation in minumum wages across state. I added ind02 at the last step because it significantly increases the number of parameters to be estimated\
 
 ```{r}
 #| echo: false
@@ -404,6 +400,7 @@ for (i in 1:5) {
 RMSE_CV_Model4 = sqrt(mean(unlist(results)))
 
 ```
+
 ```{r}
 #| echo: false
 #| warning: false
@@ -466,6 +463,10 @@ BIC_full_Model4 <- BIC(model_4)
 
 ```
 
+Each model is estimated by OLS. The coefficients are estimated by both using cross-validation (5-fold)[^2] and using the whole sample. RMSE and BIC are calculated and shown in next section.
+
+[^2]: The code for performing 5-fold cross-validation is modified from the draft code from ChatGPT. The conversation can be accessed by: https://chat.openai.com/share/9c5a88fd-34b0-42a3-84cd-4e3a889d357d
+
 ## Performance
 
 ```{r}
@@ -491,6 +492,7 @@ colnames(Sum_results) <- ColNames
 #| echo: false
 kable(Sum_results, align = "c")
 ```
+
 ```{r}
 #| echo: false
 ## plot RMSE
@@ -502,6 +504,9 @@ colnames(Sum_results)[1] <- 'Model'
 data_long <- gather(Sum_results, key = "Metric", value = "Value", -Model)
 
 ```
+<center><span style="font-size: larger; font-weight: bold;">RMSE in Full Sample and RMSE CV for Each Model[^3].</span></center>
+
+[^3]: The plot is created by using code written by ChatGPT. The conversation can be accessed by: https://chat.openai.com/share/a92f067a-67b3-42c7-94e7-735ab247963f 
 
 ```{r}
 #| echo: false
@@ -514,14 +519,11 @@ df_plot <- data_long[data_long$Metric %in% c("RMSE in full sample", "RMSE CV"), 
 ggplot(df_plot, aes(x = Model, y = Value, color = Metric, group = Metric)) +
   geom_line() +
   geom_point() +
-  labs(title = "RMSE in Full Sample and RMSE CV for Each Model",
-       x = "Model",
+  labs(x = "Model",
        y = "Value") +
   scale_color_manual(values = c("RMSE in full sample" = "blue", "RMSE CV" = "red")) +   scale_y_continuous(limits = c(2, 8)) +  # Set y-axis limits + 
-  theme_minimal() + theme(plot.title = element_text(size = 20), axis.text = element_text(size = 10))  # Adjust the title font size
+  theme_minimal() + theme(axis.text = element_text(size = 10))  
+
 ```
-
-
-
 
 ## Discussion
