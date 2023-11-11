@@ -37,6 +37,9 @@ The task is to build a model to predict hourly earnings. I select 'Miscellaneous
 
 Firstly, I describe the variables that will be used in constructing the models. Then, the details of each model are presented along with the performance. Finally, I discuss the obtained results.
 
+Link to code on Github: <https://github.com/PhakphumJ/DA3-phdma/tree/main/Assignment%201> <span style="color:grey;">(.qmd file may be preferable to the R-script due to better readability.)</span>
+
+
 ## Data Dictionary
 
 ### Original Variables
@@ -218,7 +221,7 @@ The generated variables are:
 
 The sample comes from 50 states. While each state may have different social and economic environment, we would lose significant degree of freedom if we use *stfips*. To compromise, I opt to use data on minimum wages of each state instead. I use published data on the government website and asked ChatGPT to clean it [^1].
 
-[^1]: The data is from :https://www.dol.gov/agencies/whd/state/minimum-wage/history; the recorded process with ChatGPT can be accessed by: https://chat.openai.com/share/dd30493f-c0f8-4b6e-ba9e-ea05e228c719
+[^1]: The data is from :<https://www.dol.gov/agencies/whd/state/minimum-wage/history>; the recorded process with ChatGPT can be accessed by: <https://chat.openai.com/share/dd30493f-c0f8-4b6e-ba9e-ea05e228c719>
 
 -   Minwage: the minimum wages in each states in 2014.
 
@@ -466,7 +469,7 @@ The explanations potential relationships between these predictors and the target
 
 Each model is estimated by OLS. The coefficients are estimated by both using cross-validation (5-fold)[^2] and using the whole sample. RMSE and BIC are calculated and shown in next section.
 
-[^2]: The code for performing 5-fold cross-validation is modified from the draft code from ChatGPT. The conversation can be accessed by: https://chat.openai.com/share/9c5a88fd-34b0-42a3-84cd-4e3a889d357d
+[^2]: The code for performing 5-fold cross-validation is modified from the draft code from ChatGPT. The conversation can be accessed by: <https://chat.openai.com/share/9c5a88fd-34b0-42a3-84cd-4e3a889d357d>
 
 ## Performance
 
@@ -510,7 +513,7 @@ data_long <- gather(Sum_results, key = "Metric", value = "Value", -Model)
 
 <center>[RMSE in Full Sample and RMSE CV for Each Model]{style="font-size: larger; font-weight: bold;"}[^3].</center>
 
-[^3]: [The plot is created by using code written by ChatGPT. The conversation can be accessed by: https://chat.openai.com/share/a92f067a-67b3-42c7-94e7-735ab247963f]{style="font-size: larger; font-weight: bold;"}
+[^3]: The plot is created by using code written by ChatGPT. The conversation can be accessed by: <https://chat.openai.com/share/a92f067a-67b3-42c7-94e7-735ab247963f>
 
 ```{r}
 #| echo: false
@@ -542,7 +545,7 @@ Drawing from the results in @tbl-performance, Model 3 is the best model among th
 
 ## Appendix {#sec-appendix -}
 
-Explanations of potential relationships between the predictors and the target variable
+Short explanations of potential relationships between the predictors and the target variable
 
 -   Age: When workers become older, they may become physically weaker and have lower productivity. Hence, they may receive lower wages.
 
