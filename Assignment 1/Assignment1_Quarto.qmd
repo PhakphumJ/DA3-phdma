@@ -32,7 +32,6 @@ MiscWorkerData = DataOriginal %>%
   filter(occ2012 == 6050)
 ```
 
-# Assignment 1
 
 The task is to build a model to predict hourly earnings. I select 'Miscellaneous agricultural workers, including animal breeders' (*occ2012* = 6050) to be my population of interest.\
 
@@ -46,7 +45,7 @@ This section describes the meaning of each variable that will be used in this mo
 
 -   stfips: State codes
 
--   weight: Final Weight
+-   weight: Weight of observation in sample (How many observations it represents in population)
 
 -   earnwke: Earnings per week
 
@@ -463,6 +462,8 @@ BIC_full_Model4 <- BIC(model_4)
 
 ```
 
+The explanations potential relationships between these predictors and the target variable can be found in the [appendix](#sec-appendix).
+
 Each model is estimated by OLS. The coefficients are estimated by both using cross-validation (5-fold)[^2] and using the whole sample. RMSE and BIC are calculated and shown in next section.
 
 [^2]: The code for performing 5-fold cross-validation is modified from the draft code from ChatGPT. The conversation can be accessed by: https://chat.openai.com/share/9c5a88fd-34b0-42a3-84cd-4e3a889d357d
@@ -506,9 +507,10 @@ colnames(Sum_results)[1] <- 'Model'
 data_long <- gather(Sum_results, key = "Metric", value = "Value", -Model)
 
 ```
-<center><span style="font-size: larger; font-weight: bold;">RMSE in Full Sample and RMSE CV for Each Model[^3].</span></center>
 
-[^3]: The plot is created by using code written by ChatGPT. The conversation can be accessed by: https://chat.openai.com/share/a92f067a-67b3-42c7-94e7-735ab247963f 
+<center>[RMSE in Full Sample and RMSE CV for Each Model]{style="font-size: larger; font-weight: bold;"}[^3].</center>
+
+[^3]: [The plot is created by using code written by ChatGPT. The conversation can be accessed by: https://chat.openai.com/share/a92f067a-67b3-42c7-94e7-735ab247963f]{style="font-size: larger; font-weight: bold;"}
 
 ```{r}
 #| echo: false
@@ -531,13 +533,35 @@ ggplot(df_plot, aes(x = Model, y = Value, color = Metric, group = Metric)) +
 ```
 
 ## Discussion
-From @fig-RMSE-plot, it can be seen that both RMSE from using full sample and cross-validation initially decline as the number of variables in the model increases because adding more features increases the goodness-of-fit of the model. 
-However, when 36 coefficients are added to model (from Model 3 to Model 4), the problem of overfitting arises, as reflected by the increasing RMSE from cross-validation. Even though the added features improve the in-sample goodness-of-fit, the overly complex model captures the noise and idiosyncrasies from the training sets which may not be there in test sets (or live data). This exercise highlights the consequence of overfitting the model. 
 
-The BIC and RMSE in full sample also reveal interesting information. Going from Model 1 to Model 2, while the goodness-of-fit may improve, the BIC indicates that the gain was small such that it is outweighed by the penalty from increased number of parameters. This imply that the three variables added in Model 2 may only marginally improve the fit. While adding 36 more features to model (from Model 3 to Model 4) may significantly improve the in-sample fit, but it also come at a significant cost, which may be even greater than the gain, as reflected by in the increase in BIC. \
+From @fig-RMSE-plot, it can be seen that both RMSE from using full sample and cross-validation initially decline as the number of variables in the model increases because adding more features increases the goodness-of-fit of the model. However, when 36 coefficients are added to model (from Model 3 to Model 4), the problem of overfitting arises, as reflected by the increasing RMSE from cross-validation. Even though the added features improve the in-sample goodness-of-fit, the overly complex model captures the noise and idiosyncrasies from the training sets which may not be there in test sets (or live data). This exercise highlights the consequence of overfitting the model.
 
-Drawing from the results in @tbl-performance, Model 3 is the best model among the four models in predicting hourly earnings of miscellaneous agricultural workers since it has the lowest value of BIC and RMSE from cross-validation. 
+The BIC and RMSE in full sample also reveal interesting information. Going from Model 1 to Model 2, while the goodness-of-fit may improve, the BIC indicates that the gain was small such that it is outweighed by the penalty from increased number of parameters. This imply that the three variables added in Model 2 may only marginally improve the fit. While adding 36 more features to model (from Model 3 to Model 4) may significantly improve the in-sample fit, but it also come at a significant cost, which may be even greater than the gain, as reflected by in the increase in BIC.\
 
-### Appendix 
+Drawing from the results in @tbl-performance, Model 3 is the best model among the four models in predicting hourly earnings of miscellaneous agricultural workers since it has the lowest value of BIC and RMSE from cross-validation.
 
-Explanations of potential relationships between predictors and target variable
+## Appendix {#sec-appendix -}
+
+Explanations of potential relationships between the predictors and the target variable
+
+-   Age: When workers become older, they may become physically weaker and have lower productivity. Hence, they may receive lower wages.
+
+-   Marital Status: Marital status may affect productivity and wages through mental health.
+
+-   Citizenship Status: Non-citizen workers may be at disadvantage as the employers may face higher administrative costs when hiring them.
+
+-   Education Level: Education level may increase productivity and availability of outside options of the workers.
+
+-   Working hours: Workers who work longer hours may be viewed positively by employers. They may also work longer hours to compensate for lower wage rates.
+
+-   Race: There may be racial discrimination among some employers.
+
+-   Class of Worker: For-profit private organizations may pay higher wages to their workers since they may be more profitable.
+
+-   Gender: There may be gender discrimination among some employers. Female workers may also need to allocate more time to taking care of their household.
+
+-   Number of Children: Children may affect productivity of their parents through mental health and fatigue effects.
+
+-   Minimum Wages: Workers and employers may use the minimum wages as a reference when negotiating.
+
+-   Industry: Each industry may have different economic environments and prospects.
