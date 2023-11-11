@@ -490,6 +490,8 @@ colnames(Sum_results) <- ColNames
 
 ```{r}
 #| echo: false
+#| label: tbl-performance
+#| tbl-cap: Performance Metrics of Models
 kable(Sum_results, align = "c")
 ```
 
@@ -510,7 +512,9 @@ data_long <- gather(Sum_results, key = "Metric", value = "Value", -Model)
 
 ```{r}
 #| echo: false
+#| label: fig-RMSE-plot
 #| fig-align: center
+#| fig-cap: RMSE Plot
 
 # Filter the data to include only "RMSE in full sample" and "RMSE CV"
 df_plot <- data_long[data_long$Metric %in% c("RMSE in full sample", "RMSE CV"), ]
@@ -521,9 +525,19 @@ ggplot(df_plot, aes(x = Model, y = Value, color = Metric, group = Metric)) +
   geom_point() +
   labs(x = "Model",
        y = "Value") +
-  scale_color_manual(values = c("RMSE in full sample" = "blue", "RMSE CV" = "red")) +   scale_y_continuous(limits = c(2, 8)) +  # Set y-axis limits + 
+  scale_color_manual(values = c("RMSE in full sample" = "blue", "RMSE CV" = "red")) +   scale_y_continuous(limits = c(6, 7)) +  # Set y-axis limits + 
   theme_minimal() + theme(axis.text = element_text(size = 10))  
 
 ```
 
 ## Discussion
+From @fig-RMSE-plot, it can be seen that both RMSE from using full sample and cross-validation initially decline as the number of variables in the model increases because adding more features increases the goodness-of-fit of the model. 
+However, when 36 coefficients are added to model (from Model 3 to Model 4), the problem of overfitting arises, as reflected by the increasing RMSE from cross-validation. Even though the added features improve the in-sample goodness-of-fit, the overly complex model captures the noise and idiosyncrasies from the training sets which may not be there in test sets (or live data). This exercise highlights the consequence of overfitting the model. 
+
+The BIC and RMSE in full sample also reveal interesting information. Going from Model 1 to Model 2, while the goodness-of-fit may improve, the BIC indicates that the gain was small such that it is outweighed by the penalty from increased number of parameters. This imply that the three variables added in Model 2 may only marginally improve the fit. While adding 36 more features to model (from Model 3 to Model 4) may significantly improve the in-sample fit, but it also come at a significant cost, which may be even greater than the gain, as reflected by in the increase in BIC. \
+
+Drawing from the results in @tbl-performance, Model 3 is the best model among the four models in predicting hourly earnings of miscellaneous agricultural workers since it has the lowest value of BIC and RMSE from cross-validation. 
+
+### Appendix 
+
+Explanations of potential relationships between predictors and target variable
