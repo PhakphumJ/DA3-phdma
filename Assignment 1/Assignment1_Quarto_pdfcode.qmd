@@ -1,9 +1,10 @@
 ---
 title: "Assignment_1_Wage_PhakphumJ"
 author: "Phakphum Jatupitpornchan"
-format: html
+format: pdf
 editor: visual
 ---
+
 
 ```{r}
 #| warning: false
@@ -55,6 +56,7 @@ This section describes the meaning of each variable that will be used in this mo
 -   uhours: Working hours per week
 
 -   grade92: Highest grade attended; **It is not numerical variable**. (e.g. 31 = Less than 1st grade, 32 = 1st - 4th grade)
+{{< pagebreak >}}
 
 ```{r}
 #| echo: false
@@ -472,6 +474,7 @@ Each model is estimated by OLS. The coefficients are estimated by both using cro
 [^2]: The code for performing 5-fold cross-validation is modified from the draft code from ChatGPT. The conversation can be accessed by: <https://chat.openai.com/share/9c5a88fd-34b0-42a3-84cd-4e3a889d357d>
 
 ## Performance
+The performance metrics of the estimated models are present in @tbl-performance and @fig-RMSE-plot.
 
 ```{r}
 #| echo: false
@@ -511,15 +514,13 @@ data_long <- gather(Sum_results, key = "Metric", value = "Value", -Model)
 
 ```
 
-<center>[RMSE in Full Sample and RMSE CV for Each Model]{style="font-size: larger; font-weight: bold;"}[^3].</center>
-
 [^3]: The plot is created by using code written by ChatGPT. The conversation can be accessed by: <https://chat.openai.com/share/a92f067a-67b3-42c7-94e7-735ab247963f>
 
 ```{r}
 #| echo: false
 #| label: fig-RMSE-plot
 #| fig-align: center
-#| fig-cap: RMSE Plot
+#| fig-cap: RMSE Plot [^3]
 
 # Filter the data to include only "RMSE in full sample" and "RMSE CV"
 df_plot <- data_long[data_long$Metric %in% c("RMSE in full sample", "RMSE CV"), ]
@@ -531,7 +532,7 @@ ggplot(df_plot, aes(x = Model, y = Value, color = Metric, group = Metric)) +
   labs(x = "Model",
        y = "Value") +
   scale_color_manual(values = c("RMSE in full sample" = "blue", "RMSE CV" = "red")) +   scale_y_continuous(limits = c(6, 7)) +  # Set y-axis limits + 
-  theme_minimal() + theme(axis.text = element_text(size = 10))  
+  theme_minimal() + theme(axis.text = element_text(size = 10), plot.margin = margin(1, 1, 1, 1, "cm"))  
 
 ```
 
