@@ -1,0 +1,74 @@
+---
+title: "Assignment 2 - AirBnB"
+author: "Phakphum Jatupitpornchan"
+format: html
+editor: visual
+---
+
+## Features Engineering
+
+### Picking features
+
+-   Information about host
+
+    -   Host response time (*host_response_time*)
+
+    -   Host response rate (*host_response_rate*)
+
+    -   Host acceptance rate (*host_acceptance_rate*)
+
+    -   Is superhost (*host_is_superhost*)
+
+    -   Total listings (*host_total_listings_count*)
+
+    -   Has identity identified (*host_identity_verified*)
+
+-   Information about the accomodation
+
+    -   Neighbourhood (*neighbourhood_cleansed*)
+
+    -   Types of property (*property_type*)
+
+    -   Types of room (*room_type*)
+
+    -   Number of people that can be accommodated (*accommodates*)
+
+    -   Types and number of bathrooms (*bathrooms_text*)
+
+    -   Amenities (*amenities*)
+
+    -   Minimum number of night stay for the listing (*minimum_nights*)
+
+    -   Maximum number of night stay for the listing (*maximum_nights*)
+
+    -   Is availability (*has_availability*)
+
+    -   The availability of the listing 30 days in the future as determined by the calendar (*availability_30*)
+
+    -   The availability of the listing 60 days in the future as determined by the calendar (*availability_60*)
+
+    -   The availability of the listing 90 days in the future as determined by the calendar (*availability_90*)
+
+    -   The availability of the listing 365 days in the future as determined by the calendar (*availability_365*)
+
+    -   The number of reviews the listing has (*number_of_reviews*)
+
+    -   The number of reviews the listing has (in the last 12 months) (*number_of_reviews_ltm*)
+
+    -   The date of the last/newest review (*last_review*)
+
+    -   Overall review rating (review_scores_rating)
+
+    -   Average accuracy review rating (*review_scores_accuracy*)
+
+    -   Average cleanliness review rating (*review_scores_cleanliness*)
+
+    -   Average check-in review rating (*review_scores_checkin*)
+
+    -   Average communication review rating (*review_scores_communication*)
+
+    -   Average location review rating (*review_scores_location*)
+
+    -   Average value review rating (*review_scores_value*)
+
+    -   Whether the guest can automatically book the listing without the host requiring to accept their booking request. (*instant_bookable*)
