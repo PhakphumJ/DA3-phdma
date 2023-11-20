@@ -5,6 +5,38 @@ format: html
 editor: visual
 ---
 
+```{r}
+#| echo: false
+#| warning: false
+
+rm(list=ls())
+
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(weights)
+library(caret)
+library(kableExtra)
+library(tidyr)
+library(fastDummies)
+library(data.table)
+
+# Set Working Directory and Importing Data
+
+setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction with Machine Learning/Assignment/DA3-phdma/Assignment 2")
+
+Data_Mar <- read_csv("listings_mar_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
+Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
+```
+
+```{r}
+#| echo: false
+
+## Keeping only variables that we are going to use.
+Data_Mar = Data_Mar %>% 
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+```
+
 ## Features Engineering
 
 ### Picking features
@@ -72,3 +104,124 @@ editor: visual
     -   Average value review rating (*review_scores_value*)
 
     -   Whether the guest can automatically book the listing without the host requiring to accept their booking request. (*instant_bookable*)
+
+-   Only use the most relevant amenities, otherwise takes too long.
+
+    -   Hair dryer
+
+    -   Shampoo
+
+    -   Shower gel
+
+    -   Air conditioning
+
+    -   Essentials
+
+    -   Wifi
+
+    -   Washer
+
+    -   Iron
+
+    -   Smoking allowed
+
+    -   Free parking on premises
+
+    -   Luggage dropoff allowed
+
+    -   Kitchen
+
+    -   Refrigerator
+
+    -   Dining table
+
+    -   Dedicated workspace
+
+    -   Elevator
+
+    -   Microwave
+
+    -   Dishes and silverware
+
+    -   TV
+
+    -   Pool
+
+    -   Gym
+
+    -   Pets allowed
+
+```{r}
+#| echo: false
+
+## Let's tranform bathrooms_text.
+Data_Mar %>% 
+  count(bathrooms_text)
+
+## It seems that we have 3 main categories
+# 1. baths 2. shared baths 3.private baths 4. Half-bath
+# Recode it in terms of number of baths (each category)
+```
+
+```{r}
+#| echo: false
+
+## Extracting number and types of bathrooms
+# Initialize new columns
+Data_Mar$num_baths <- numeric(nrow(Data_Mar))
+Data_Mar$num_shared_baths <- numeric(nrow(Data_Mar))
+Data_Mar$num_private_baths <- numeric(nrow(Data_Mar))
+Data_Mar$is_half_bath <- numeric(nrow(Data_Mar))
+
+# Extract information using regular expressions
+for (i in seq_along(Data_Mar$bathrooms_text)) {
+  # Check for NA
+  if (!is.na(Data_Mar$bathrooms_text[i])) {
+    # Extract number and type of bath
+    match <- regmatches(Data_Mar$bathrooms_text[i], regexec("(\\d+)\\s*(shared|private)?\\s*baths?", Data_Mar$bathrooms_text[i]))[[1]]
+    
+    # Extract number
+    num <- as.numeric(match[2])
+    
+    # Determine type and assign to corresponding variable
+    if (grepl("shared", match[3], ignore.case = TRUE)) {
+      Data_Mar$num_shared_baths[i] <- num
+    } else if (grepl("private", match[3], ignore.case = TRUE)) {
+      Data_Mar$num_private_baths[i] <- num
+    } else {
+      Data_Mar$num_baths[i] <- num
+    }
+    
+    # Check if it is a half bath
+    Data_Mar$is_half_bath[i] <- ifelse(grepl("half", tolower(Data_Mar$bathrooms_text[i])) || grepl("shared half", tolower(Data_Mar$bathrooms_text[i])), 1, 0)
+  }
+}
+
+# Set values to NA if bathrooms_text is NA
+Data_Mar$num_baths[is.na(Data_Mar$bathrooms_text)] <- NA
+Data_Mar$num_shared_baths[is.na(Data_Mar$bathrooms_text)] <- NA
+Data_Mar$num_private_baths[is.na(Data_Mar$bathrooms_text)] <- NA
+Data_Mar$is_half_bath[is.na(Data_Mar$bathrooms_text)] <- NA
+
+
+```
+
+```{r}
+#| echo: false
+
+# List of amenities
+amenities_list <- c("Hair dryer", "Shampoo", "Shower gel", "Air conditioning", "Essentials", 
+                    "Wifi", "Washer", "Iron", "Smoking allowed", "Free parking on premises", 
+                    "Luggage dropoff allowed", "Kitchen", "Refrigerator", "Dining table", 
+                    "Dedicated workspace", "Elevator", "Microwave", "Dishes and silverware", 
+                    "TV", "Pool", "Gym", "Pets allowed")
+
+# Loop through the list and create dummy variables
+for (amenity in amenities_list) {
+  dummy_variable_name <- paste0(gsub(" ", "_", amenity), "_dummy")
+  Data_Mar[[dummy_variable_name]] <- ifelse(sapply(Data_Mar$amenities, grepl, pattern = amenity), 1, 0)
+}
+
+# Drop the original 'amenities' column
+Data_Mar <- subset(Data_Mar, select = -amenities)
+```
