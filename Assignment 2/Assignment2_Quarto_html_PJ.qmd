@@ -18,6 +18,8 @@ library(weights)
 library(caret)
 library(kableExtra)
 library(tidyr)
+library(fastDummies)
+library(data.table)
 
 # Set Working Directory and Importing Data
 
@@ -32,7 +34,7 @@ Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE)
 
 ## Keeping only variables that we are going to use.
 Data_Mar = Data_Mar %>% 
-  select(host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
 ```
 
 ## Features Engineering
@@ -103,7 +105,54 @@ Data_Mar = Data_Mar %>%
 
     -   Whether the guest can automatically book the listing without the host requiring to accept their booking request. (*instant_bookable*)
 
+-   Only use the most relevant amenities, otherwise takes too long.
+
+    -   Hair dryer
+
+    -   Shampoo
+
+    -   Shower gel
+
+    -   Air conditioning
+
+    -   Essentials
+
+    -   Wifi
+
+    -   Washer
+
+    -   Iron
+
+    -   Smoking allowed
+
+    -   Free parking on premises
+
+    -   Luggage dropoff allowed
+
+    -   Kitchen
+
+    -   Refrigerator
+
+    -   Dining table
+
+    -   Dedicated workspace
+
+    -   Elevator
+
+    -   Microwave
+
+    -   Dishes and silverware
+
+    -   TV
+
+    -   Pool
+
+    -   Gym
+
+    -   Pets allowed
+
 ```{r}
+#| echo: false
 
 ## Let's tranform bathrooms_text.
 Data_Mar %>% 
@@ -152,6 +201,25 @@ Data_Mar$num_baths[is.na(Data_Mar$bathrooms_text)] <- NA
 Data_Mar$num_shared_baths[is.na(Data_Mar$bathrooms_text)] <- NA
 Data_Mar$num_private_baths[is.na(Data_Mar$bathrooms_text)] <- NA
 Data_Mar$is_half_bath[is.na(Data_Mar$bathrooms_text)] <- NA
+
+
+```
+
+```{r}
+#| echo: false
+
+# List of amenities
+amenities_list <- c("Hair dryer", "Shampoo", "Shower gel", "Air conditioning", "Essentials", 
+                    "Wifi", "Washer", "Iron", "Smoking allowed", "Free parking on premises", 
+                    "Luggage dropoff allowed", "Kitchen", "Refrigerator", "Dining table", 
+                    "Dedicated workspace", "Elevator", "Microwave", "Dishes and silverware", 
+                    "TV", "Pool", "Gym", "Pets allowed")
+
+# Loop through the list and create dummy variables
+for (amenity in amenities_list) {
+  dummy_variable_name <- paste0(gsub(" ", "_", amenity), "_dummy")
+  Data_Mar[[dummy_variable_name]] <- ifelse(sapply(Data_Mar$amenities, grepl, pattern = amenity), 1, 0)
+}
 
 
 ```
