@@ -25,8 +25,8 @@ library(data.table)
 
 setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction with Machine Learning/Assignment/DA3-phdma/Assignment 2")
 
-Data_Mar <- read_csv("listings_mar_2023.csv", show_col_types = FALSE)
-Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE)
+Data_Mar <- read_csv("listings_mar_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
+Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
 ```
 
 ```{r}
@@ -164,6 +164,7 @@ Data_Mar %>%
 ```
 
 ```{r}
+#| echo: false
 
 ## Extracting number and types of bathrooms
 # Initialize new columns
@@ -221,5 +222,6 @@ for (amenity in amenities_list) {
   Data_Mar[[dummy_variable_name]] <- ifelse(sapply(Data_Mar$amenities, grepl, pattern = amenity), 1, 0)
 }
 
-
+# Drop the original 'amenities' column
+Data_Mar <- subset(Data_Mar, select = -amenities)
 ```

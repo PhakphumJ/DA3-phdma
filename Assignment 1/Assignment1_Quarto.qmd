@@ -32,13 +32,11 @@ MiscWorkerData = DataOriginal %>%
   filter(occ2012 == 6050)
 ```
 
-
 The task is to build a model to predict hourly earnings. I select 'Miscellaneous agricultural workers, including animal breeders' (*occ2012* = 6050) to be my population of interest.\
 
 Firstly, I describe the variables that will be used in constructing the models. Then, the details of each model are presented along with the performance. Finally, I discuss the obtained results.
 
-Link to code on Github: <https://github.com/PhakphumJ/DA3-phdma/tree/main/Assignment%201> <span style="color:grey;">(.qmd file may be preferable to the R-script due to better readability.)</span>
-
+Link to code on Github: <https://github.com/PhakphumJ/DA3-phdma/tree/main/Assignment%201> [(.qmd file may be preferable to the R-script due to better readability.)]{style="color:grey;"}
 
 ## Data Dictionary
 
@@ -543,7 +541,7 @@ The BIC and RMSE in full sample also reveal interesting information. Going from 
 
 Drawing from the results in @tbl-performance, Model 3 is the best model among the four models in predicting hourly earnings of miscellaneous agricultural workers since it has the lowest value of BIC and RMSE from cross-validation.
 
-## Appendix {#sec-appendix -}
+## Appendix {#sec-appendix .unnumbered}
 
 Short explanations of potential relationships between the predictors and the target variable
 
