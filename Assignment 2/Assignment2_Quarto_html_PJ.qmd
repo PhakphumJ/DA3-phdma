@@ -29,12 +29,38 @@ Data_Mar <- read_csv("listings_mar_2023.csv", show_col_types = FALSE, na = c("",
 Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
 ```
 
+## Defining Target Observations (Validation Set) and Sample
+
 ```{r}
 #| echo: false
+Data_Sept %>% 
+  filter(room_type == "Entire home/apt") %>%
+  count(property_type) %>%
+  arrange(desc(n))
+```
 
-## Keeping only variables that we are going to use.
+```{r}
+#| echo: false
+Data_Sept %>% 
+  count(room_type) %>%
+  arrange(desc(n))
+```
+
+I consider only observation with *room_type* = "Entire home/apt" & *property_type* = %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment") & *accommodates* \>= 2 & *accommodates* \<= 2
+
+From this whole sample (Bangkok in Sept, n = 10722), it is randomly split into 15% to be the validation set and 85% work set.
+
+```{r}
+
+## Filtering data
 Data_Mar = Data_Mar %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+  filter(room_type == "Entire home/apt", property_type %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment"), accommodates >= 2, accommodates <= 6)
+
+
+Data_Sept = Data_Sept %>% 
+  filter(room_type == "Entire home/apt", property_type %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment"), accommodates >= 2, accommodates <= 6)
+
+
 ```
 
 ## Features Engineering
@@ -154,6 +180,28 @@ Data_Mar = Data_Mar %>%
 ```{r}
 #| echo: false
 
+## Keeping only variables that we are going to use.
+Data_Mar = Data_Mar %>% 
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+
+Data_Sept = Data_Sept %>% 
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+```
+
+```{r}
+#| echo: false
+
+## Converting the price to numeric 
+Data_Mar$price <- gsub("\\$", "", Data_Mar$price)
+Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
+
+Data_Sept$price <- gsub("\\$", "", Data_Sept$price)
+Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
+```
+
+```{r}
+#| echo: false
+
 ## Let's tranform bathrooms_text.
 Data_Mar %>% 
   count(bathrooms_text)
@@ -224,4 +272,32 @@ for (amenity in amenities_list) {
 
 # Drop the original 'amenities' column
 Data_Mar <- subset(Data_Mar, select = -amenities)
+```
+
+```{r}
+#| echo: false
+
+### Encoding other variables into dummy variables
+## host_response_time
+
+
+## neighbourhood_cleansed
+
+
+## property_type
+
+
+## missing score flag
+
+
+## drop the original variables used
+```
+
+```{r}
+#| echo: false
+
+## Creating variable called "time_since_last_review"
+
+
+
 ```
