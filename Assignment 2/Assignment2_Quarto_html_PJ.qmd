@@ -31,6 +31,21 @@ Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("
 
 ## Defining Target Observations (Validation Set) and Sample
 
+```{r}
+#| echo: false
+Data_Sept %>% 
+  filter(room_type == "Entire home/apt") %>%
+  count(property_type) %>%
+  arrange(desc(n))
+```
+
+```{r}
+#| echo: false
+Data_Sept %>% 
+  count(room_type) %>%
+  arrange(desc(n))
+```
+
 I consider only observation with *room_type* = "Entire home/apt" & *property_type* = %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment") & *accommodates* \>= 2 & *accommodates* \<= 2
 
 From this whole sample (Bangkok in Sept, n = 10722), it is randomly split into 15% to be the validation set and 85% work set.
@@ -176,6 +191,17 @@ Data_Sept = Data_Sept %>%
 ```{r}
 #| echo: false
 
+## Converting the price to numeric 
+Data_Mar$price <- gsub("\\$", "", Data_Mar$price)
+Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
+
+Data_Sept$price <- gsub("\\$", "", Data_Sept$price)
+Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
+```
+
+```{r}
+#| echo: false
+
 ## Let's tranform bathrooms_text.
 Data_Mar %>% 
   count(bathrooms_text)
@@ -249,6 +275,7 @@ Data_Mar <- subset(Data_Mar, select = -amenities)
 ```
 
 ```{r}
+#| echo: false
 
 ### Encoding other variables into dummy variables
 ## host_response_time
@@ -256,18 +283,21 @@ Data_Mar <- subset(Data_Mar, select = -amenities)
 
 ## neighbourhood_cleansed
 
-##
+
+## property_type
+
+
+## missing score flag
+
+
+## drop the original variables used
 ```
 
 ```{r}
-Data_Mar %>% 
-  filter(room_type == "Entire home/apt") %>%
-  count(property_type) %>%
-  arrange(desc(n))
-```
+#| echo: false
 
-```{r}
-Data_Mar %>% 
-  count(room_type) %>%
-  arrange(desc(n))
+## Creating variable called "time_since_last_review"
+
+
+
 ```
