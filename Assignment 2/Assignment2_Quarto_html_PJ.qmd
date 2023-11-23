@@ -182,10 +182,10 @@ Data_Sept = Data_Sept %>%
 
 ## Keeping only variables that we are going to use.
 Data_Mar = Data_Mar %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
 
 Data_Sept = Data_Sept %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
 ```
 
 ```{r}
@@ -214,7 +214,8 @@ Data_Mar %>%
 ```{r}
 #| echo: false
 
-## Extracting number and types of bathrooms
+### Extracting number and types of bathrooms
+## Start with March
 # Initialize new columns
 Data_Mar$num_baths <- numeric(nrow(Data_Mar))
 Data_Mar$num_shared_baths <- numeric(nrow(Data_Mar))
@@ -252,11 +253,54 @@ Data_Mar$num_private_baths[is.na(Data_Mar$bathrooms_text)] <- NA
 Data_Mar$is_half_bath[is.na(Data_Mar$bathrooms_text)] <- NA
 
 
+## Do the same thing for September
+# Initialize new columns
+Data_Sept$num_baths <- numeric(nrow(Data_Sept))
+Data_Sept$num_shared_baths <- numeric(nrow(Data_Sept))
+Data_Sept$num_private_baths <- numeric(nrow(Data_Sept))
+Data_Sept$is_half_bath <- numeric(nrow(Data_Sept))
+
+# Extract information using regular expressions
+for (i in seq_along(Data_Sept$bathrooms_text)) {
+  # Check for NA
+  if (!is.na(Data_Sept$bathrooms_text[i])) {
+    # Extract number and type of bath
+    match <- regmatches(Data_Sept$bathrooms_text[i], regexec("(\\d+)\\s*(shared|private)?\\s*baths?", Data_Sept$bathrooms_text[i]))[[1]]
+    
+    # Extract number
+    num <- as.numeric(match[2])
+    
+    # Determine type and assign to corresponding variable
+    if (grepl("shared", match[3], ignore.case = TRUE)) {
+      Data_Sept$num_shared_baths[i] <- num
+    } else if (grepl("private", match[3], ignore.case = TRUE)) {
+      Data_Sept$num_private_baths[i] <- num
+    } else {
+      Data_Sept$num_baths[i] <- num
+    }
+    
+    # Check if it is a half bath
+    Data_Sept$is_half_bath[i] <- ifelse(grepl("half", tolower(Data_Sept$bathrooms_text[i])) || grepl("shared half", tolower(Data_Sept$bathrooms_text[i])), 1, 0)
+  }
+}
+
+# Set values to NA if bathrooms_text is NA
+Data_Sept$num_baths[is.na(Data_Sept$bathrooms_text)] <- NA
+Data_Sept$num_shared_baths[is.na(Data_Sept$bathrooms_text)] <- NA
+Data_Sept$num_private_baths[is.na(Data_Sept$bathrooms_text)] <- NA
+Data_Sept$is_half_bath[is.na(Data_Sept$bathrooms_text)] <- NA
+
+
+# Drop the original 'bathrooms_text' column
+Data_Mar <- subset(Data_Mar, select = -bathrooms_text)
+Data_Sept <- subset(Data_Sept, select = -bathrooms_text)
+
 ```
 
 ```{r}
 #| echo: false
 
+## Extracing amenities into dummy variables
 # List of amenities
 amenities_list <- c("Hair dryer", "Shampoo", "Shower gel", "Air conditioning", "Essentials", 
                     "Wifi", "Washer", "Iron", "Smoking allowed", "Free parking on premises", 
@@ -270,34 +314,78 @@ for (amenity in amenities_list) {
   Data_Mar[[dummy_variable_name]] <- ifelse(sapply(Data_Mar$amenities, grepl, pattern = amenity), 1, 0)
 }
 
+
+for (amenity in amenities_list) {
+  dummy_variable_name <- paste0(gsub(" ", "_", amenity), "_dummy")
+  Data_Sept[[dummy_variable_name]] <- ifelse(sapply(Data_Sept$amenities, grepl, pattern = amenity), 1, 0)
+}
+
 # Drop the original 'amenities' column
 Data_Mar <- subset(Data_Mar, select = -amenities)
+Data_Sept <- subset(Data_Sept, select = -amenities)
 ```
+
+\
 
 ```{r}
 #| echo: false
 
 ### Encoding other variables into dummy variables
 ## host_response_time
+Data_Mar = dummy_cols(Data_Mar, select_columns = "host_response_time", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
+Data_Sept = dummy_cols(Data_Sept, select_columns = "host_response_time", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
 ## neighbourhood_cleansed
+Data_Mar = dummy_cols(Data_Mar, select_columns = "neighbourhood_cleansed", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+Data_Sept = dummy_cols(Data_Sept, select_columns = "neighbourhood_cleansed", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
 
 ## property_type
+Data_Mar = dummy_cols(Data_Mar, select_columns = "property_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+Data_Sept = dummy_cols(Data_Sept, select_columns = "property_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+## room_type
+Data_Mar = dummy_cols(Data_Mar, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+Data_Sept = dummy_cols(Data_Sept, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
 
 ## missing score flag
+Data_Mar <- Data_Mar %>%
+  mutate(Missing_score_flag = ifelse(is.na(review_scores_rating), 1, 0))
 
-
-## drop the original variables used
+Data_Sept <- Data_Sept %>%
+  mutate(Missing_score_flag = ifelse(is.na(review_scores_rating), 1, 0))
 ```
 
 ```{r}
 #| echo: false
 
 ## Creating variable called "time_since_last_review"
+# Convert data to date first
 
+Data_Mar$last_review <- as.Date(Data_Mar$last_review, "%Y-%b-%d")
 
+Data_Mar$last_scraped <- as.Date(Data_Mar$last_scraped, "%Y-%b-%d")
+
+Data_Sept$last_review <- as.Date(Data_Sept$last_review, "%Y-%b-%d")
+
+Data_Sept$last_scraped <- as.Date(Data_Sept$last_scraped, "%Y-%b-%d")
+
+# Calculate the time between the two dates
+
+Data_Mar$time_since_last_review <- Data_Mar$last_scraped - Data_Mar$last_review
+
+Data_Sept$time_since_last_review <- Data_Sept$last_scraped - Data_Sept$last_review
+
+# Removing the used two columns
+Data_Mar = Data_Mar %>%
+  select(-c(last_review, last_scraped))
+
+Data_Sept = Data_Sept %>%
+  select(-c(last_review, last_scraped))
 
 ```
