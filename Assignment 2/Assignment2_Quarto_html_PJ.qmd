@@ -348,9 +348,9 @@ Data_Sept = dummy_cols(Data_Sept, select_columns = "neighbourhood_cleansed", rem
 
 
 ## property_type
-Data_Mar = dummy_cols(Data_Mar, select_columns = "property_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+Data_Mar = dummy_cols(Data_Mar, select_columns = "property_type", remove_first_dummy = TRUE)
 
-Data_Sept = dummy_cols(Data_Sept, select_columns = "property_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+Data_Sept = dummy_cols(Data_Sept, select_columns = "property_type", remove_first_dummy = TRUE)
 
 ## room_type
 Data_Mar = dummy_cols(Data_Mar, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
@@ -597,15 +597,6 @@ Data_Sept <- Data_Sept %>%
 
 ```
 
-```{r}
-## Examining NA values again
-Data_Mar %>%
-  summarise(across(everything(), ~ sum(is.na(.)))) %>%
-  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
-  arrange(desc(na_count)) %>% kable()
-
-```
-
 ## Builidng Models
 I will consider three main types of models: linear regression, random forest, and boosting. The details of each model will be discussed in the following sections.
 
@@ -621,6 +612,19 @@ hold_out_Mar <- Data_Mar %>%
 hold_out_Sept <- Data_Sept %>%
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
   sample_frac(0.20)
+
+# Deleting property_type column
+hold_out_Mar <- hold_out_Mar %>%
+  select(-property_type)
+
+hold_out_Sept <- hold_out_Sept %>% 
+  select(-property_type)
+
+Data_Mar <- Data_Mar %>%
+  select(-property_type) 
+
+Data_Sept <- Data_Sept %>% 
+  select(-property_type)
 
 ## Subtract hold-out set from the sample to get work set.
 Data_Mar <- Data_Mar %>%
@@ -707,7 +711,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_2 <- update(model_OLS_1, . ~ . + accommodates + bedrooms + beds + property_type + room_type + num_baths + num_shared_baths + is_half_bath + num_private_baths + amenities, data = train)
+  model_OLS_2 <- update(model_OLS_1, . ~ . + accommodates + bedrooms + beds + num_baths + num_shared_baths + is_half_bath + num_private_baths + Hair_dryer_dummy + Shampoo_dummy + TV_dummy + Wifi_dummy + Shower_gel_dummy + Air_conditioning_dummy + Kitchen_dummy + Elevator_dummy + Free_parking_on_premises_dummy + Gym_dummy + Pool_dummy + Washer_dummy + Dryer_dummy + Essentials_dummy + Iron_dummy + Smoking_allowed_dummy + Luggage_dropoff_allowed_dummy + Refrigerator_dummy + Dining_table_dummy + Dedicated_workspace_dummy + Microwave_dummy + Dishes_and_silverware_dummy + Pets_allowed_dummy + property_type_Entire home/apt + property_type_Entire serviced apartment + property_type_Private room in  
   
   # Predict the test data
   test$pred <- predict(model_OLS_2, newdata = test)
@@ -721,6 +725,7 @@ for (i in 1:5) {
 
 # Calculate the average RMSE
 RMSE_OLS_2 <- mean(unlist(results))
+
 
 ## Model 3
 ```
