@@ -631,7 +631,37 @@ Model 4: *price* = model 3 + *host_is_superhost*, *host_response_time*, *host_re
 
 Model 5: *price* = *f*(all variables)
 
-#### Selecting the best OLs model
+#### Selecting the best OLS model
 ```{r}
+#| Echo = FALSE
+#### Selecting by using 5-fold cross validation
+set.seed(20231126)
+# Getting the indices for 5-fold cross validation
+folds <- createFolds(Data_Mar$price, k = 5, list = TRUE, returnTrain = TRUE)
 
-```{r}
+### Estimating Models and obtains RMSE (5-folds CV)
+## Model 1
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_1 <- lm(price ~ review_scores_rating + review_scores_accuracy + review_scores_cleanliness + review_scores_checkin + review_scores_communication + review_scores_location + review_scores_value + review_scores_rating_imputed, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_1, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+ 
+# Calculate the average RMSE
+RMSE_OLS_1 <- mean(unlist(results))
+
+```
