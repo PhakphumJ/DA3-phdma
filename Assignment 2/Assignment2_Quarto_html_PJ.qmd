@@ -351,13 +351,6 @@ Data_Mar = dummy_cols(Data_Mar, select_columns = "room_type", remove_first_dummy
 
 Data_Sept = dummy_cols(Data_Sept, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
-
-## missing score flag
-Data_Mar <- Data_Mar %>%
-  mutate(Missing_score_flag = ifelse(is.na(review_scores_rating), 1, 0))
-
-Data_Sept <- Data_Sept %>%
-  mutate(Missing_score_flag = ifelse(is.na(review_scores_rating), 1, 0))
 ```
 
 ```{r}
@@ -440,8 +433,174 @@ Data_Mar <- Data_Mar %>%
 Data_Mar <- Data_Mar %>%
   mutate(near_ARL = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_ARL))
 
+# Drop description and neighborhood_overview
+Data_Mar = Data_Mar %>%
+  select(-c(description, neighborhood_overview))
+
 
 ### Do the same thing for September.
+Data_Sept$near_MRT <- ifelse(
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        Data_Sept$description, ignore.case = TRUE) |
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
 
+Data_Sept$near_BTS <- ifelse(
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        Data_Sept$description, ignore.case = TRUE) |
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+Data_Sept$near_ARL <- ifelse(
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        Data_Sept$description, ignore.case = TRUE) |
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+
+Data_Sept <- Data_Sept %>%
+  mutate(near_MRT = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_MRT))
+
+Data_Sept <- Data_Sept %>%
+  mutate(near_BTS = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_BTS))
+
+Data_Sept <- Data_Sept %>%
+  mutate(near_ARL = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_ARL))
+
+Data_Sept = Data_Sept %>% select(-c(description, neighborhood_overview))
 
 ```
+
+
+```{r}
+## Examining NA values
+
+Data_Mar %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  arrange(desc(na_count)) %>% kable()
+
+```
+
+```{r}
+## Examining NA values again for Data_Sept
+Data_Sept %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  arrange(desc(na_count)) %>% kable()
+```
+
+
+### Dealing with NAs 
+
+-   For scores, replace it the mean and add binary flag variable to capture this.
+
+-   For *time_since_last_review*, replace it with max(time_since_last_review). These are accommodations with no review yet. Prospect customers may see these place similar to those which did not get any review for a long time.
+
+-  Those with *host_acceptance_rate* and *host_response_rate*  = NA are likely to be newcomers. We will drop these. 
+
+-  For *near_MRT*, *near_BTS*, and *near_ARL*, replace NA with 0. 
+
+- For *host_is_superhost*, replace NA with 0.
+
+-  Those with missing values for the number of bathrooms can be dropped since there are only a few of them.
+
+```{r}
+## Drop those with missing values for host_acceptance_rate and host_response_rate
+
+Data_Mar <- Data_Mar %>%
+  filter(!is.na(host_acceptance_rate) & !is.na(host_response_rate))
+
+Data_Sept <- Data_Sept %>% 
+  filter(!is.na(host_acceptance_rate) & !is.na(host_response_rate))
+
+## Drop those with missing values for baths
+Data_Mar <- Data_Mar %>%
+  filter(!is.na(num_baths) & !is.na(num_shared_baths) & !is.na(is_half_bath) & !is.na(num_private_baths))
+
+Data_Sept <- Data_Sept %>% 
+  filter(!is.na(num_baths) & !is.na(num_shared_baths) & !is.na(is_half_bath) & !is.na(num_private_baths))
+
+```
+
+```{r}
+## Replace NA values in near_MRT, near_BTS, and near_ARL with 0
+
+Data_Mar <- Data_Mar %>%
+  mutate(across(c(near_MRT, near_BTS, near_ARL), ~ ifelse(is.na(.), 0, .)))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(across(c(near_MRT, near_BTS, near_ARL), ~ ifelse(is.na(.), 0, .)))
+
+## Replace NA values in host_is_superhost with 0
+Data_Mar <- Data_Mar %>%
+  mutate(host_is_superhost = ifelse(is.na(host_is_superhost), 0, host_is_superhost))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(host_is_superhost = ifelse(is.na(host_is_superhost), 0, host_is_superhost))
+
+```
+
+
+```{r}
+## Replace NA values in time_since_last_review with max
+Data_Mar <- Data_Mar %>%
+  mutate(time_since_last_review = ifelse(is.na(time_since_last_review), max(time_since_last_review, na.rm = TRUE), time_since_last_review))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(time_since_last_review = ifelse(is.na(time_since_last_review), max(time_since_last_review, na.rm = TRUE), time_since_last_review))
+```
+
+
+```{r}
+## Replace NA values in scores with mean
+Data_Mar <- Data_Mar %>%
+  mutate(across(c(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(across(c(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+# Create a binary flag variable to capture the imputation
+Data_Mar <- Data_Mar %>%
+  mutate(review_scores_rating_imputed = ifelse(is.na(review_scores_rating), 1, 0))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(review_scores_rating_imputed = ifelse(is.na(review_scores_rating), 1, 0))
+
+# Create a binary flag variable to capture the imputation
+Data_Mar <- Data_Mar %>%
+  mutate(review_scores_accuracy_imputed = ifelse(is.na(review_scores_accuracy), 1, 0))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(review_scores_accuracy_imputed = ifelse(is.na(review_scores_accuracy), 1, 0))
+
+```
+
+```{r}
+## Examining NA values again
+Data_Mar %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  arrange(desc(na_count)) %>% kable()
+
+```
+
+## Bulidng Models
+I will consider three main types of models: linear regression, random forest, and boosting. The details of each model will be discussed in the following sections.
+
+### Linear Regression
+I consider 5 linear regression models. The one that will be selected to compared with other two models is the one with the lowest RMSE. 
+
+The five models are:
+1. Model 1: Only variables related to reviews except the *time_since_last_review* 
+2. Model 2: Model 1 + characteristics of the living space
+3. Model 3: Model 2 + information about location
+4. Model 4: Model 3 + information about the host 
+5. Model 5: All variables
+
