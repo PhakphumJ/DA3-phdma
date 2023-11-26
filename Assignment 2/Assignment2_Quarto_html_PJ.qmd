@@ -573,13 +573,6 @@ Data_Mar <- Data_Mar %>%
 Data_Sept <- Data_Sept %>% 
   mutate(review_scores_rating_imputed = ifelse(is.na(review_scores_rating), 1, 0))
 
-# Create a binary flag variable to capture the imputation
-Data_Mar <- Data_Mar %>%
-  mutate(review_scores_accuracy_imputed = ifelse(is.na(review_scores_accuracy), 1, 0))
-
-Data_Sept <- Data_Sept %>% 
-  mutate(review_scores_accuracy_imputed = ifelse(is.na(review_scores_accuracy), 1, 0))
-
 ```
 
 ```{r}
@@ -604,3 +597,10 @@ The five models are:
 4. Model 4: Model 3 + information about the host 
 5. Model 5: All variables
 
+Model 1: *price* = *f*(*review_scores_rating*, *review_scores_accuracy*, *review_scores_cleanliness*, *review_scores_checkin*, *review_scores_communication*, *review_scores_location*, *review_scores_value*, *review_scores_rating_imputed*)
+
+Model 2: *price* = model 1 + *accommodates*, *bedrooms*, *beds*, *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*, *amenities*
+
+Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*, *neighborhood*
+
+Model 4: *price* = model 3 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
