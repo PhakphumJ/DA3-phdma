@@ -861,4 +861,16 @@ RMSE_OLS_6 <- sqrt(mean(unlist(results)^2))
 
 ```
 
+```{r}
+## Put the results in a data frame
+results <- data.frame(
+  Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6"),
+  RMSE = c(RMSE_OLS_1, RMSE_OLS_2, RMSE_OLS_3, RMSE_OLS_4, RMSE_OLS_5, RMSE_OLS_6)
+)
 
+# Print the table with borders
+kable(results, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+```
+
+Model 3 is the best performing model with the lowest RMSE. 
