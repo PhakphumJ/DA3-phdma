@@ -31,9 +31,9 @@ Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("
 
 ## Defining Live Data and Sample
 
-Live data: Observations with *property_type* = %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment") & *accommodates* \>= 2 & *accommodates* \<= 6
+Live data: Observations with *property_type*%in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment") & *accommodates* \>= 2 & *accommodates* \<= 6
 
-Sample: Observations with *property_type* = %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo") & *accommodates* \>= 2 & *accommodates* \<= 6.
+Sample: Observations with *property_type* %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo") & *accommodates* \>= 2 & *accommodates* \<= 6.
 
 The definition of sample here (apartments and condos) is wider than the definition of target observations (apartments) to increase the sample size.
 
@@ -53,6 +53,29 @@ Data_Mar = Data_Mar %>%
 Data_Sept = Data_Sept %>% 
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
 
+
+```
+
+
+```{r}
+### Split sample into hold-out and work set.
+set.seed(20231126)
+
+## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
+hold_out_Mar <- Data_Mar %>%
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
+  sample_frac(0.20)
+
+hold_out_Sept <- Data_Sept %>%
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
+  sample_frac(0.20)
+
+## Subtract hold-out set from the sample to get work set.
+Data_Mar <- Data_Mar %>%
+  filter(!id %in% hold_out_Mar$id)
+
+Data_Sept <- Data_Sept %>% 
+  filter(!id %in% hold_out_Sept$id)
 
 ```
 
@@ -587,6 +610,7 @@ Data_Mar %>%
 ## Bulidng Models
 I will consider three main types of models: linear regression, random forest, and boosting. The details of each model will be discussed in the following sections.
 
+
 ### Linear Regression
 I consider 5 linear regression models. The one that will be selected to compared with other two models is the one with the lowest RMSE. 
 
@@ -604,3 +628,10 @@ Model 2: *price* = model 1 + *accommodates*, *bedrooms*, *beds*, *property_type*
 Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*, *neighborhood*
 
 Model 4: *price* = model 3 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
+
+Model 5: *price* = *f*(all variables)
+
+#### Selecting the best OLs model
+```{r}
+
+```{r}
