@@ -52,7 +52,7 @@ From this whole sample (Bangkok in Sept, n = 10722), it is randomly split into 1
 
 ```{r}
 
-## Filtering data
+### Filtering data
 Data_Mar = Data_Mar %>% 
   filter(room_type == "Entire home/apt", property_type %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment"), accommodates >= 2, accommodates <= 6)
 
@@ -131,6 +131,12 @@ Data_Sept = Data_Sept %>%
 
     -   Whether the guest can automatically book the listing without the host requiring to accept their booking request. (*instant_bookable*)
 
+    -   Description of the accommodation (*description*)
+
+    -   Description of the neighborhood (*neighborhood_overview*)
+
+        -   BTS, bts, Skytrain, skytrain, MRT, mrt, Metro, metro, Subway, subway, Airport Rail Link, Airport Link, airport rail link, airport link, ARL, arl
+
 -   Only use the most relevant amenities, otherwise takes too long.
 
     -   Hair dryer
@@ -180,18 +186,18 @@ Data_Sept = Data_Sept %>%
 ```{r}
 #| echo: false
 
-## Keeping only variables that we are going to use.
+### Keeping only variables that we are going to use.
 Data_Mar = Data_Mar %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 
 Data_Sept = Data_Sept %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 ```
 
 ```{r}
 #| echo: false
 
-## Converting the price to numeric 
+### Converting the price to numeric 
 Data_Mar$price <- gsub("\\$", "", Data_Mar$price)
 Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
 
@@ -300,7 +306,7 @@ Data_Sept <- subset(Data_Sept, select = -bathrooms_text)
 ```{r}
 #| echo: false
 
-## Extracing amenities into dummy variables
+### Extracing amenities into dummy variables
 # List of amenities
 amenities_list <- c("Hair dryer", "Shampoo", "Shower gel", "Air conditioning", "Essentials", 
                     "Wifi", "Washer", "Iron", "Smoking allowed", "Free parking on premises", 
@@ -364,7 +370,7 @@ Data_Sept <- Data_Sept %>%
 ```{r}
 #| echo: false
 
-## Creating variable called "time_since_last_review"
+### Creating variable called "time_since_last_review"
 # Convert data to date first
 
 Data_Mar$last_review <- as.Date(Data_Mar$last_review, "%Y-%b-%d")
@@ -387,5 +393,58 @@ Data_Mar = Data_Mar %>%
 
 Data_Sept = Data_Sept %>%
   select(-c(last_review, last_scraped))
+
+```
+
+```{r}
+#| echo: false
+### Extrating Information about Skytrain, Metro
+## MRT (Subway)
+
+# Define a vector of keywords related to public transport
+MRT_keywords <- c("\\bMRT\\b", "\\bmrt\\b", "\\bMetro\\b", "\\bmetro\\b", "\\bSubway\\b", "\\bsubway\\b")
+
+# Use the keywords in grepl and create a new column
+Data_Mar$near_MRT <- ifelse(
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        Data_Mar$description, ignore.case = TRUE) |
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        Data_Mar$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+## BTS (Skytrain)
+BTS_keywords <- c("\\bBTS\\b", "\\bbts\\b", "\\bSkytrain\\b", "\\bskytrain\\b")
+
+Data_Mar$near_BTS <- ifelse(
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        Data_Mar$description, ignore.case = TRUE) |
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        Data_Mar$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+
+## ARL (Airport Rail Link)
+ARL_keywords <- c("\\bAirport Rail Link\\b", "\\bAirport Link\\b", "\\bairport rail link\\b", "\\bairport link\\b", "\\bARL\\b", "\\barl\\b")
+
+Data_Mar$near_ARL <- ifelse(
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        Data_Mar$description, ignore.case = TRUE) |
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        Data_Mar$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+# Set values to NA if description and neighborhood_overview are NA
+
+Data_Mar <- Data_Mar %>%
+  mutate(near_MRT = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_MRT))
+
+Data_Mar <- Data_Mar %>%
+  mutate(near_BTS = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_BTS))
+
+Data_Mar <- Data_Mar %>%
+  mutate(near_ARL = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_ARL))
 
 ```
