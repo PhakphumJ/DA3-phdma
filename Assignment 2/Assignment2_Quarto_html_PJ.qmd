@@ -207,6 +207,28 @@ Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
 ```{r}
 #| echo: false
 
+## Converting host_response_rate to numeric
+Data_Mar$host_response_rate <- gsub("\\%", "", Data_Mar$host_response_rate)
+
+Data_Mar$host_response_rate <- as.numeric(gsub(",", "", Data_Mar$host_response_rate))
+
+Data_Sept$host_response_rate <- gsub("\\%", "", Data_Sept$host_response_rate)
+
+Data_Sept$host_response_rate <- as.numeric(gsub(",", "", Data_Sept$host_response_rate))
+
+## Converting host_acceptance_rate to numeric
+Data_Mar$host_acceptance_rate <- gsub("\\%", "", Data_Mar$host_acceptance_rate)
+
+Data_Mar$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Mar$host_acceptance_rate))
+
+Data_Sept$host_acceptance_rate <- gsub("\\%", "", Data_Sept$host_acceptance_rate)
+
+Data_Sept$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Sept$host_acceptance_rate))
+```
+
+```{r}
+#| echo: false
+
 ## Let's tranform bathrooms_text.
 Data_Mar %>% 
   count(bathrooms_text)
@@ -340,6 +362,11 @@ Data_Sept <- subset(Data_Sept, select = -amenities)
 Data_Mar = dummy_cols(Data_Mar, select_columns = "host_response_time", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
 Data_Sept = dummy_cols(Data_Sept, select_columns = "host_response_time", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+# drop host_response_time_NA
+Data_Mar <- subset(Data_Mar, select = -host_response_time_NA)
+
+Data_Sept <- subset(Data_Sept, select = -host_response_time_NA)
 
 ## neighbourhood_cleansed
 Data_Mar = dummy_cols(Data_Mar, select_columns = "neighbourhood_cleansed", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
@@ -650,28 +677,33 @@ Data_Sept <- Data_Sept %>%
 
 
 ### Linear Regression
-I consider 5 linear regression models. The one that will be selected to compared with other two models is the one with the lowest RMSE. 
+I consider 6 linear regression models. The one that will be selected to compared with other two models is the one with the lowest RMSE. 
 
 The five models are:
 1. Model 1: Only variables related to reviews except the *time_since_last_review* 
 2. Model 2: Model 1 + characteristics of the living space
-3. Model 3: Model 2 + information about location
-4. Model 4: Model 3 + information about the host 
-5. Model 5: All variables
+3. Model 3: Model 2 + information about rail transportation
+4. Model 4: Model 3 + information about the neighborhood
+5. Model 5: Model 4 + information about the host 
+6. Model 6: All variables
 
 Model 1: *price* = *f*(*review_scores_rating*, *review_scores_accuracy*, *review_scores_cleanliness*, *review_scores_checkin*, *review_scores_communication*, *review_scores_location*, *review_scores_value*, *review_scores_rating_imputed*)
 
 Model 2: *price* = model 1 + *accommodates*, *bedrooms*, *beds*, *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*, *amenities*
 
-Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*, *neighborhood*
+Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*, 
 
-Model 4: *price* = model 3 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
+Model 4: *price* = model 3 + *neighborhood*
 
-Model 5: *price* = *f*(all variables)
+Model 5: *price* = model 4 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
+
+Model 6: *price* = *f*(all variables)
 
 #### Selecting the best OLS model
 ```{r}
 #| Echo = FALSE
+#| Warning = FALSE
+
 #### Selecting by using 5-fold cross validation
 set.seed(20231126)
 # Getting the indices for 5-fold cross validation
@@ -700,7 +732,7 @@ for (i in 1:5) {
 }
  
 # Calculate the average RMSE
-RMSE_OLS_1 <- mean(unlist(results))
+RMSE_OLS_1 <- sqrt(mean(unlist(results)^2))
 
 ## Model 2
 results <- list()
@@ -711,7 +743,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_2 <- update(model_OLS_1, . ~ . + accommodates + bedrooms + beds + num_baths + num_shared_baths + is_half_bath + num_private_baths + Hair_dryer_dummy + Shampoo_dummy + TV_dummy + Wifi_dummy + Shower_gel_dummy + Air_conditioning_dummy + Kitchen_dummy + Elevator_dummy + Free_parking_on_premises_dummy + Gym_dummy + Pool_dummy + Washer_dummy + Dryer_dummy + Essentials_dummy + Iron_dummy + Smoking_allowed_dummy + Luggage_dropoff_allowed_dummy + Refrigerator_dummy + Dining_table_dummy + Dedicated_workspace_dummy + Microwave_dummy + Dishes_and_silverware_dummy + Pets_allowed_dummy + property_type_Entire home/apt + property_type_Entire serviced apartment + property_type_Private room in  
+  model_OLS_2 <- update(model_OLS_1, . ~ . + accommodates + bedrooms + beds + num_baths + num_shared_baths + is_half_bath + num_private_baths + Hair_dryer_dummy + Shampoo_dummy + TV_dummy + Wifi_dummy + Shower_gel_dummy + Air_conditioning_dummy + Kitchen_dummy + Elevator_dummy + Free_parking_on_premises_dummy + Gym_dummy + Pool_dummy + Washer_dummy + Essentials_dummy + Iron_dummy + Smoking_allowed_dummy + Luggage_dropoff_allowed_dummy + Refrigerator_dummy + Dining_table_dummy + Dedicated_workspace_dummy + Microwave_dummy + Dishes_and_silverware_dummy + Pets_allowed_dummy + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room`, data = train)
   
   # Predict the test data
   test$pred <- predict(model_OLS_2, newdata = test)
@@ -724,8 +756,109 @@ for (i in 1:5) {
 }
 
 # Calculate the average RMSE
-RMSE_OLS_2 <- mean(unlist(results))
+RMSE_OLS_2 <- sqrt(mean(unlist(results)^2))
 
 
 ## Model 3
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_3 <- update(model_OLS_2, . ~ . + near_MRT + near_BTS + near_ARL, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_3, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_3 <- sqrt(mean(unlist(results)^2))
+
+
+## Model 4
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_4 <- update(model_OLS_3, . ~ . + `neighbourhood_cleansed_Bang Kapi` + `neighbourhood_cleansed_Bang Khae` + `neighbourhood_cleansed_Bang Khen` + `neighbourhood_cleansed_Bang Kho laen` + `neighbourhood_cleansed_Bang Khun thain` + `neighbourhood_cleansed_Bang Na` + `neighbourhood_cleansed_Bang Phlat` + `neighbourhood_cleansed_Bang Rak` + `neighbourhood_cleansed_Bang Sue` + `neighbourhood_cleansed_Bangkok Noi` + `neighbourhood_cleansed_Bangkok Yai` + `neighbourhood_cleansed_Bueng Kum` + `neighbourhood_cleansed_Chatu Chak` + `neighbourhood_cleansed_Chom Thong` + `neighbourhood_cleansed_Din Daeng` + `neighbourhood_cleansed_Don Mueang` + `neighbourhood_cleansed_Dusit` + `neighbourhood_cleansed_Huai Khwang` + `neighbourhood_cleansed_Khan Na Yao` +  `neighbourhood_cleansed_Khlong San` + `neighbourhood_cleansed_Khlong Toei` + `neighbourhood_cleansed_Lak Si` + `neighbourhood_cleansed_Lat Krabang` + `neighbourhood_cleansed_Lat Phrao` + `neighbourhood_cleansed_Min Buri` + `neighbourhood_cleansed_Nong Chok` + `neighbourhood_cleansed_Nong Khaem` + `neighbourhood_cleansed_Phasi Charoen` +   `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Taling Chan` +  `neighbourhood_cleansed_Thon buri` +  `neighbourhood_cleansed_Parthum Wan` + `neighbourhood_cleansed_Phaya Thai` + `neighbourhood_cleansed_Phra Khanong` + `neighbourhood_cleansed_Phra Nakhon` + `neighbourhood_cleansed_Pom Prap Sattru Phai` + `neighbourhood_cleansed_Pra Wet` + `neighbourhood_cleansed_Rat Burana` + `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Suanluang` + `neighbourhood_cleansed_Thung khru` + `neighbourhood_cleansed_Vadhana` + `neighbourhood_cleansed_Wang Thong Lang` + `neighbourhood_cleansed_Yan na wa`, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_4, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_4 <- sqrt(mean(unlist(results)^2))
+
+
+## Model 5
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_5 <- update(model_OLS_4, . ~ . + host_is_superhost + host_response_rate + host_acceptance_rate + host_total_listings_count + host_identity_verified + `host_response_time_within a few hours` + `host_response_time_within an hour` + `host_response_time_within a day`, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_5, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_5 <- sqrt(mean(unlist(results)^2))
+
+
+## Model 6
+
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_6 <- lm(price ~ ., data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_6, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_6 <- sqrt(mean(unlist(results)^2))
+
 ```
+
+
