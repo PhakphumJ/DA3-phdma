@@ -29,39 +29,33 @@ Data_Mar <- read_csv("listings_mar_2023.csv", show_col_types = FALSE, na = c("",
 Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
 ```
 
-## Defining Target Observations (Validation Set) and Sample
+## Defining Live Data and Sample
+
+Live data: Observations with *property_type*%in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment") & *accommodates* \>= 2 & *accommodates* \<= 6
+
+Sample: Observations with *property_type* %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo") & *accommodates* \>= 2 & *accommodates* \<= 6.
+
+The definition of sample here (apartments and condos) is wider than the definition of target observations (apartments) to increase the sample size.
+
+I split the sample into 2 main parts.
+
+1.  Hold-out set: 15% of apartments randomly selected to be in the hold-out set. I only use apartments because the results on performance in this case would then be closer to the results from actual live data which only contains apartments.
+2.  Work set: The remaining 85% of the sample is the work set. It is split further to be training set and test set.
 
 ```{r}
 #| echo: false
-Data_Sept %>% 
-  filter(room_type == "Entire home/apt") %>%
-  count(property_type) %>%
-  arrange(desc(n))
-```
-
-```{r}
-#| echo: false
-Data_Sept %>% 
-  count(room_type) %>%
-  arrange(desc(n))
-```
-
-I consider only observation with *room_type* = "Entire home/apt" & *property_type* = %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment") & *accommodates* \>= 2 & *accommodates* \<= 2
-
-From this whole sample (Bangkok in Sept, n = 10722), it is randomly split into 15% to be the validation set and 85% work set.
-
-```{r}
 
 ### Filtering data
 Data_Mar = Data_Mar %>% 
-  filter(room_type == "Entire home/apt", property_type %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment"), accommodates >= 2, accommodates <= 6)
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
 
 
 Data_Sept = Data_Sept %>% 
-  filter(room_type == "Entire home/apt", property_type %in% c("Entire rental unit", "Entire condo", "Entire serviced apartment"), accommodates >= 2, accommodates <= 6)
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
 
 
 ```
+
 
 ## Features Engineering
 
@@ -92,6 +86,10 @@ Data_Sept = Data_Sept %>%
     -   Number of people that can be accommodated (*accommodates*)
 
     -   Types and number of bathrooms (*bathrooms_text*)
+    
+    -   Number of bedrooms (*bedrooms*)
+    
+    -   Number of beds (*beds*)
 
     -   Amenities (*amenities*)
 
@@ -188,11 +186,12 @@ Data_Sept = Data_Sept %>%
 
 ### Keeping only variables that we are going to use.
 Data_Mar = Data_Mar %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
+  select(id, price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 
 Data_Sept = Data_Sept %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
+  select(id, price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 ```
+
 
 ```{r}
 #| echo: false
@@ -203,6 +202,28 @@ Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
 
 Data_Sept$price <- gsub("\\$", "", Data_Sept$price)
 Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
+```
+
+```{r}
+#| echo: false
+
+## Converting host_response_rate to numeric
+Data_Mar$host_response_rate <- gsub("\\%", "", Data_Mar$host_response_rate)
+
+Data_Mar$host_response_rate <- as.numeric(gsub(",", "", Data_Mar$host_response_rate))
+
+Data_Sept$host_response_rate <- gsub("\\%", "", Data_Sept$host_response_rate)
+
+Data_Sept$host_response_rate <- as.numeric(gsub(",", "", Data_Sept$host_response_rate))
+
+## Converting host_acceptance_rate to numeric
+Data_Mar$host_acceptance_rate <- gsub("\\%", "", Data_Mar$host_acceptance_rate)
+
+Data_Mar$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Mar$host_acceptance_rate))
+
+Data_Sept$host_acceptance_rate <- gsub("\\%", "", Data_Sept$host_acceptance_rate)
+
+Data_Sept$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Sept$host_acceptance_rate))
 ```
 
 ```{r}
@@ -306,7 +327,7 @@ Data_Sept <- subset(Data_Sept, select = -bathrooms_text)
 ```{r}
 #| echo: false
 
-### Extracing amenities into dummy variables
+### Extracting amenities into dummy variables
 # List of amenities
 amenities_list <- c("Hair dryer", "Shampoo", "Shower gel", "Air conditioning", "Essentials", 
                     "Wifi", "Washer", "Iron", "Smoking allowed", "Free parking on premises", 
@@ -342,6 +363,11 @@ Data_Mar = dummy_cols(Data_Mar, select_columns = "host_response_time", remove_fi
 
 Data_Sept = dummy_cols(Data_Sept, select_columns = "host_response_time", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
+# drop host_response_time_NA
+Data_Mar <- subset(Data_Mar, select = -host_response_time_NA)
+
+Data_Sept <- subset(Data_Sept, select = -host_response_time_NA)
+
 ## neighbourhood_cleansed
 Data_Mar = dummy_cols(Data_Mar, select_columns = "neighbourhood_cleansed", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
@@ -349,22 +375,15 @@ Data_Sept = dummy_cols(Data_Sept, select_columns = "neighbourhood_cleansed", rem
 
 
 ## property_type
-Data_Mar = dummy_cols(Data_Mar, select_columns = "property_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+Data_Mar = dummy_cols(Data_Mar, select_columns = "property_type", remove_first_dummy = TRUE)
 
-Data_Sept = dummy_cols(Data_Sept, select_columns = "property_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+Data_Sept = dummy_cols(Data_Sept, select_columns = "property_type", remove_first_dummy = TRUE)
 
 ## room_type
 Data_Mar = dummy_cols(Data_Mar, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
 Data_Sept = dummy_cols(Data_Sept, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
-
-## missing score flag
-Data_Mar <- Data_Mar %>%
-  mutate(Missing_score_flag = ifelse(is.na(review_scores_rating), 1, 0))
-
-Data_Sept <- Data_Sept %>%
-  mutate(Missing_score_flag = ifelse(is.na(review_scores_rating), 1, 0))
 ```
 
 ```{r}
@@ -447,4 +466,411 @@ Data_Mar <- Data_Mar %>%
 Data_Mar <- Data_Mar %>%
   mutate(near_ARL = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_ARL))
 
+# Drop description and neighborhood_overview
+Data_Mar = Data_Mar %>%
+  select(-c(description, neighborhood_overview))
+
+
+### Do the same thing for September.
+Data_Sept$near_MRT <- ifelse(
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        Data_Sept$description, ignore.case = TRUE) |
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+Data_Sept$near_BTS <- ifelse(
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        Data_Sept$description, ignore.case = TRUE) |
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+Data_Sept$near_ARL <- ifelse(
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        Data_Sept$description, ignore.case = TRUE) |
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+
+Data_Sept <- Data_Sept %>%
+  mutate(near_MRT = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_MRT))
+
+Data_Sept <- Data_Sept %>%
+  mutate(near_BTS = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_BTS))
+
+Data_Sept <- Data_Sept %>%
+  mutate(near_ARL = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_ARL))
+
+Data_Sept = Data_Sept %>% select(-c(description, neighborhood_overview))
+
 ```
+
+
+```{r}
+## Examining NA values
+
+Data_Mar %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  arrange(desc(na_count)) %>% kable()
+
+```
+
+```{r}
+## Examining NA values again for Data_Sept
+Data_Sept %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  arrange(desc(na_count)) %>% kable()
+```
+
+
+### Dealing with NAs 
+
+-   For scores, replace it with the mean and add binary flag variable to capture this.
+
+-   For *time_since_last_review*, replace it with max(time_since_last_review). These are accommodations with no review yet. Prospect customers may see these place similar to those which did not get any review for a long time.
+
+-  Those with *host_acceptance_rate* and *host_response_rate*  = NA are likely to be newcomers. We will drop these. 
+
+-  For *near_MRT*, *near_BTS*, and *near_ARL*, replace NA with 0. 
+
+- For *host_is_superhost*, replace NA with 0.
+
+- For *bedrooms* and *beds*, replace NA with the mean and add binary flag variable to capture this.
+
+-  Those with missing values for the number of bathrooms can be dropped since there are only a few of them.
+
+```{r}
+## Drop those with missing values for host_acceptance_rate and host_response_rate
+
+Data_Mar <- Data_Mar %>%
+  filter(!is.na(host_acceptance_rate) & !is.na(host_response_rate))
+
+Data_Sept <- Data_Sept %>% 
+  filter(!is.na(host_acceptance_rate) & !is.na(host_response_rate))
+
+## Drop those with missing values for baths
+Data_Mar <- Data_Mar %>%
+  filter(!is.na(num_baths) & !is.na(num_shared_baths) & !is.na(is_half_bath) & !is.na(num_private_baths))
+
+Data_Sept <- Data_Sept %>% 
+  filter(!is.na(num_baths) & !is.na(num_shared_baths) & !is.na(is_half_bath) & !is.na(num_private_baths))
+
+```
+
+```{r}
+## Replace NA values in near_MRT, near_BTS, and near_ARL with 0
+
+Data_Mar <- Data_Mar %>%
+  mutate(across(c(near_MRT, near_BTS, near_ARL), ~ ifelse(is.na(.), 0, .)))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(across(c(near_MRT, near_BTS, near_ARL), ~ ifelse(is.na(.), 0, .)))
+
+## Replace NA values in host_is_superhost with 0
+Data_Mar <- Data_Mar %>%
+  mutate(host_is_superhost = ifelse(is.na(host_is_superhost), 0, host_is_superhost))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(host_is_superhost = ifelse(is.na(host_is_superhost), 0, host_is_superhost))
+
+```
+
+
+```{r}
+## Replace NA values in time_since_last_review with max
+Data_Mar <- Data_Mar %>%
+  mutate(time_since_last_review = ifelse(is.na(time_since_last_review), max(time_since_last_review, na.rm = TRUE), time_since_last_review))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(time_since_last_review = ifelse(is.na(time_since_last_review), max(time_since_last_review, na.rm = TRUE), time_since_last_review))
+```
+
+
+```{r}
+## Replace NA values in scores with mean
+Data_Mar <- Data_Mar %>%
+  mutate(across(c(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(across(c(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+# Create a binary flag variable to capture the imputation
+Data_Mar <- Data_Mar %>%
+  mutate(review_scores_rating_imputed = ifelse(is.na(review_scores_rating), 1, 0))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(review_scores_rating_imputed = ifelse(is.na(review_scores_rating), 1, 0))
+
+## Replace NA values in bedrooms and beds with mean
+Data_Mar <- Data_Mar %>%
+  mutate(across(c(bedrooms, beds), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(across(c(bedrooms, beds), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+# Create a binary flag variable to capture the imputation
+Data_Mar <- Data_Mar %>%
+  mutate(bedrooms_imputed = ifelse(is.na(bedrooms), 1, 0))
+
+Data_Sept <- Data_Sept %>% 
+  mutate(bedrooms_imputed = ifelse(is.na(bedrooms), 1, 0))
+
+```
+
+## Builidng Models
+I will consider three main types of models: linear regression, random forest, and boosting. The details of each model will be discussed in the following sections.
+
+```{r}
+### Split sample into hold-out and work set.
+set.seed(20231126)
+
+## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
+hold_out_Mar <- Data_Mar %>%
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
+  sample_frac(0.20)
+
+hold_out_Sept <- Data_Sept %>%
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
+  sample_frac(0.20)
+
+# Deleting property_type column
+hold_out_Mar <- hold_out_Mar %>%
+  select(-property_type)
+
+hold_out_Sept <- hold_out_Sept %>% 
+  select(-property_type)
+
+Data_Mar <- Data_Mar %>%
+  select(-property_type) 
+
+Data_Sept <- Data_Sept %>% 
+  select(-property_type)
+
+## Subtract hold-out set from the sample to get work set.
+Data_Mar <- Data_Mar %>%
+  filter(!id %in% hold_out_Mar$id)
+
+Data_Sept <- Data_Sept %>% 
+  filter(!id %in% hold_out_Sept$id)
+
+## Deleting id column
+hold_out_Mar <- hold_out_Mar %>%
+  select(-id)
+
+hold_out_Sept <- hold_out_Sept %>% 
+  select(-id)
+
+Data_Mar <- Data_Mar %>%
+  select(-id)
+
+Data_Sept <- Data_Sept %>% 
+  select(-id)
+
+```
+
+
+### Linear Regression
+I consider 6 linear regression models. The one that will be selected to compared with other two models is the one with the lowest RMSE. 
+
+The five models are:
+1. Model 1: Only variables related to reviews except the *time_since_last_review* 
+2. Model 2: Model 1 + characteristics of the living space
+3. Model 3: Model 2 + information about rail transportation
+4. Model 4: Model 3 + information about the neighborhood
+5. Model 5: Model 4 + information about the host 
+6. Model 6: All variables
+
+Model 1: *price* = *f*(*review_scores_rating*, *review_scores_accuracy*, *review_scores_cleanliness*, *review_scores_checkin*, *review_scores_communication*, *review_scores_location*, *review_scores_value*, *review_scores_rating_imputed*)
+
+Model 2: *price* = model 1 + *accommodates*, *bedrooms*, *beds*, *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*, *amenities*
+
+Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*, 
+
+Model 4: *price* = model 3 + *neighborhood*
+
+Model 5: *price* = model 4 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
+
+Model 6: *price* = *f*(all variables)
+
+#### Selecting the best OLS model
+```{r}
+#| Echo = FALSE
+#| Warning = FALSE
+
+#### Selecting by using 5-fold cross validation
+set.seed(20231126)
+# Getting the indices for 5-fold cross validation
+folds <- createFolds(Data_Mar$price, k = 5, list = TRUE, returnTrain = TRUE)
+
+### Estimating Models and obtains RMSE (5-folds CV)
+## Model 1
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_1 <- lm(price ~ review_scores_rating + review_scores_accuracy + review_scores_cleanliness + review_scores_checkin + review_scores_communication + review_scores_location + review_scores_value + review_scores_rating_imputed, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_1, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+ 
+# Calculate the average RMSE
+RMSE_OLS_1 <- sqrt(mean(unlist(results)^2))
+
+## Model 2
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_2 <- update(model_OLS_1, . ~ . + accommodates + bedrooms + beds + num_baths + num_shared_baths + is_half_bath + num_private_baths + Hair_dryer_dummy + Shampoo_dummy + TV_dummy + Wifi_dummy + Shower_gel_dummy + Air_conditioning_dummy + Kitchen_dummy + Elevator_dummy + Free_parking_on_premises_dummy + Gym_dummy + Pool_dummy + Washer_dummy + Essentials_dummy + Iron_dummy + Smoking_allowed_dummy + Luggage_dropoff_allowed_dummy + Refrigerator_dummy + Dining_table_dummy + Dedicated_workspace_dummy + Microwave_dummy + Dishes_and_silverware_dummy + Pets_allowed_dummy + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room`, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_2, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_2 <- sqrt(mean(unlist(results)^2))
+
+
+## Model 3
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_3 <- update(model_OLS_2, . ~ . + near_MRT + near_BTS + near_ARL, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_3, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_3 <- sqrt(mean(unlist(results)^2))
+
+
+## Model 4
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_4 <- update(model_OLS_3, . ~ . + `neighbourhood_cleansed_Bang Kapi` + `neighbourhood_cleansed_Bang Khae` + `neighbourhood_cleansed_Bang Khen` + `neighbourhood_cleansed_Bang Kho laen` + `neighbourhood_cleansed_Bang Khun thain` + `neighbourhood_cleansed_Bang Na` + `neighbourhood_cleansed_Bang Phlat` + `neighbourhood_cleansed_Bang Rak` + `neighbourhood_cleansed_Bang Sue` + `neighbourhood_cleansed_Bangkok Noi` + `neighbourhood_cleansed_Bangkok Yai` + `neighbourhood_cleansed_Bueng Kum` + `neighbourhood_cleansed_Chatu Chak` + `neighbourhood_cleansed_Chom Thong` + `neighbourhood_cleansed_Din Daeng` + `neighbourhood_cleansed_Don Mueang` + `neighbourhood_cleansed_Dusit` + `neighbourhood_cleansed_Huai Khwang` + `neighbourhood_cleansed_Khan Na Yao` +  `neighbourhood_cleansed_Khlong San` + `neighbourhood_cleansed_Khlong Toei` + `neighbourhood_cleansed_Lak Si` + `neighbourhood_cleansed_Lat Krabang` + `neighbourhood_cleansed_Lat Phrao` + `neighbourhood_cleansed_Min Buri` + `neighbourhood_cleansed_Nong Chok` + `neighbourhood_cleansed_Nong Khaem` + `neighbourhood_cleansed_Phasi Charoen` +   `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Taling Chan` +  `neighbourhood_cleansed_Thon buri` +  `neighbourhood_cleansed_Parthum Wan` + `neighbourhood_cleansed_Phaya Thai` + `neighbourhood_cleansed_Phra Khanong` + `neighbourhood_cleansed_Phra Nakhon` + `neighbourhood_cleansed_Pom Prap Sattru Phai` + `neighbourhood_cleansed_Pra Wet` + `neighbourhood_cleansed_Rat Burana` + `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Suanluang` + `neighbourhood_cleansed_Thung khru` + `neighbourhood_cleansed_Vadhana` + `neighbourhood_cleansed_Wang Thong Lang` + `neighbourhood_cleansed_Yan na wa`, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_4, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_4 <- sqrt(mean(unlist(results)^2))
+
+
+## Model 5
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_5 <- update(model_OLS_4, . ~ . + host_is_superhost + host_response_rate + host_acceptance_rate + host_total_listings_count + host_identity_verified + `host_response_time_within a few hours` + `host_response_time_within an hour` + `host_response_time_within a day`, data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_5, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_5 <- sqrt(mean(unlist(results)^2))
+
+
+## Model 6
+
+results <- list()
+
+for (i in 1:5) {
+  # Get the training and test data
+  train <- Data_Mar[folds[[i]], ]
+  test <- Data_Mar[-folds[[i]], ]
+  
+  # Estimate the model
+  model_OLS_6 <- lm(price ~ ., data = train)
+  
+  # Predict the test data
+  test$pred <- predict(model_OLS_6, newdata = test)
+  
+  # Calculate the RMSE
+  rmse <- RMSE(test$pred, test$price)
+  
+  # Store the results
+  results[[i]] <- rmse
+}
+
+# Calculate the average RMSE
+RMSE_OLS_6 <- sqrt(mean(unlist(results)^2))
+
+```
+
+```{r}
+## Put the results in a data frame
+results <- data.frame(
+  Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6"),
+  RMSE = c(RMSE_OLS_1, RMSE_OLS_2, RMSE_OLS_3, RMSE_OLS_4, RMSE_OLS_5, RMSE_OLS_6)
+)
+
+# Print the table with borders
+kable(results, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+```
+
+Model 3 is the best performing model with the lowest RMSE. 
