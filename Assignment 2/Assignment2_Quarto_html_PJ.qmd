@@ -44,13 +44,16 @@ I split the sample into 2 main parts.
 2.  Work set: The remaining 85% of the sample is the work set. It is split further to be training set and test set.
 
 ```{r}
+### Filtering data
+Data_Mar = Data_Mar %>% 
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
+
 ### Split sample into hold-out and work set.
 set.seed(20231126)
 
-## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
+## hold-out set will only consists of apartments. Split 10% of apartments into hold-out set.
 hold_out_Mar <- Data_Mar %>%
-  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
-  sample_frac(0.20)
+  sample_frac(0.15)
 
 ## Subtract hold-out set from the sample to get work set.
 Data_Mar <- Data_Mar %>%
@@ -65,13 +68,7 @@ Data_Mar <- Data_Mar %>%
 
 ```
 
-```{r}
-#| echo: false
 
-### Filtering data
-Data_Mar = Data_Mar %>% 
-  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
-```
 
 ## Features Engineering
 
@@ -323,7 +320,6 @@ Data_Mar <- subset(Data_Mar, select = -amenities)
 Data_Mar = dummy_cols(Data_Mar, select_columns = "host_response_time", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
 
-
 # drop host_response_time_NA
 Data_Mar <- subset(Data_Mar, select = -host_response_time_NA)
 
@@ -366,7 +362,7 @@ Data_Mar = Data_Mar %>%
 
 ```{r}
 #| echo: false
-### Extrating Information about Skytrain, Metro
+### Extracting Information about Skytrain, Metro
 ## MRT (Subway)
 
 # Define a vector of keywords related to public transport
@@ -432,18 +428,6 @@ Data_Mar %>%
 
 ```
 
-```{r}
-## Examining NA values again for the holdout set
-
-hold_out_Mar %>%
-  summarise(across(everything(), ~ sum(is.na(.)))) %>%
-  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
-  arrange(desc(na_count)) %>% kable()
-
-```
-
-```{r}
-```
 
 ### Dealing with NAs
 
@@ -547,8 +531,8 @@ Model 6: *price* = *f*(all variables)
 #### Selecting the best OLS model
 
 ```{r}
-#| Echo = FALSE
-#| Warning = FALSE
+#| echo: false
+#| warning: false
 
 #### Selecting by using 5-fold cross validation
 set.seed(20231126)
@@ -639,7 +623,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_4 <- update(model_OLS_3, . ~ . + `neighbourhood_cleansed_Bang Kapi` + `neighbourhood_cleansed_Bang Khae` + `neighbourhood_cleansed_Bang Khen` + `neighbourhood_cleansed_Bang Kho laen` + `neighbourhood_cleansed_Bang Khun thain` + `neighbourhood_cleansed_Bang Na` + `neighbourhood_cleansed_Bang Phlat` + `neighbourhood_cleansed_Bang Rak` + `neighbourhood_cleansed_Bang Sue` + `neighbourhood_cleansed_Bangkok Noi` + `neighbourhood_cleansed_Bangkok Yai` + `neighbourhood_cleansed_Bueng Kum` + `neighbourhood_cleansed_Chatu Chak` + `neighbourhood_cleansed_Chom Thong` + `neighbourhood_cleansed_Din Daeng` + `neighbourhood_cleansed_Don Mueang` + `neighbourhood_cleansed_Dusit` + `neighbourhood_cleansed_Huai Khwang` + `neighbourhood_cleansed_Khan Na Yao` +  `neighbourhood_cleansed_Khlong San` + `neighbourhood_cleansed_Khlong Toei` + `neighbourhood_cleansed_Lak Si` + `neighbourhood_cleansed_Lat Krabang` + `neighbourhood_cleansed_Lat Phrao` + `neighbourhood_cleansed_Min Buri` + `neighbourhood_cleansed_Nong Chok` + `neighbourhood_cleansed_Nong Khaem` + `neighbourhood_cleansed_Phasi Charoen` +   `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Taling Chan` +  `neighbourhood_cleansed_Thon buri` +  `neighbourhood_cleansed_Parthum Wan` + `neighbourhood_cleansed_Phaya Thai` + `neighbourhood_cleansed_Phra Khanong` + `neighbourhood_cleansed_Phra Nakhon` + `neighbourhood_cleansed_Pom Prap Sattru Phai` + `neighbourhood_cleansed_Pra Wet` + `neighbourhood_cleansed_Rat Burana` + `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Suanluang` + `neighbourhood_cleansed_Thung khru` + `neighbourhood_cleansed_Vadhana` + `neighbourhood_cleansed_Wang Thong Lang` + `neighbourhood_cleansed_Yan na wa`, data = train)
+  model_OLS_4 <- update(model_OLS_3, . ~ . + `neighbourhood_cleansed_Bang Kapi` + `neighbourhood_cleansed_Bang Khae` + `neighbourhood_cleansed_Bang Khen` + `neighbourhood_cleansed_Bang Kho laen` + `neighbourhood_cleansed_Bang Khun thain` + `neighbourhood_cleansed_Bang Na` + `neighbourhood_cleansed_Bang Phlat` + `neighbourhood_cleansed_Bang Rak` + `neighbourhood_cleansed_Bang Sue` + `neighbourhood_cleansed_Bangkok Noi` + `neighbourhood_cleansed_Bangkok Yai` + `neighbourhood_cleansed_Bueng Kum` + `neighbourhood_cleansed_Chatu Chak` + `neighbourhood_cleansed_Chom Thong` + `neighbourhood_cleansed_Din Daeng` + `neighbourhood_cleansed_Don Mueang` + `neighbourhood_cleansed_Dusit` + `neighbourhood_cleansed_Huai Khwang` + `neighbourhood_cleansed_Khan Na Yao` +  `neighbourhood_cleansed_Khlong San` + `neighbourhood_cleansed_Khlong Toei` + `neighbourhood_cleansed_Lak Si` + `neighbourhood_cleansed_Lat Krabang` + `neighbourhood_cleansed_Lat Phrao` + `neighbourhood_cleansed_Min Buri` +  `neighbourhood_cleansed_Nong Khaem` + `neighbourhood_cleansed_Phasi Charoen` +   `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Taling Chan` +  `neighbourhood_cleansed_Thon buri` +  `neighbourhood_cleansed_Parthum Wan` + `neighbourhood_cleansed_Phaya Thai` + `neighbourhood_cleansed_Phra Khanong` + `neighbourhood_cleansed_Phra Nakhon` + `neighbourhood_cleansed_Pom Prap Sattru Phai` + `neighbourhood_cleansed_Pra Wet` + `neighbourhood_cleansed_Rat Burana` + `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Suanluang` + `neighbourhood_cleansed_Thung khru` + `neighbourhood_cleansed_Vadhana` + `neighbourhood_cleansed_Wang Thong Lang` + `neighbourhood_cleansed_Yan na wa`, data = train)
   
   # Predict the test data
   test$pred <- predict(model_OLS_4, newdata = test)
@@ -755,13 +739,223 @@ model_RF
 
 
 
+## Evaluating Performance
+
+```{r}
+### Cleaning the holdout data with the same process.
+# Keep the columns that are used in the model
+hold_out_Mar = hold_out_Mar %>% 
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
+
+# Convert the price column to numeric
+hold_out_Mar$price <- gsub("\\$", "", hold_out_Mar$price)
+hold_out_Mar$price <- as.numeric(gsub(",", "", hold_out_Mar$price))
+
+# Convert the host_response_rate column to numeric
+hold_out_Mar$host_response_rate <- gsub("\\%", "", hold_out_Mar$host_response_rate)
+
+hold_out_Mar$host_response_rate <- as.numeric(gsub(",", "", hold_out_Mar$host_response_rate))
+
+# Convert the host_acceptance_rate column to numeric
+hold_out_Mar$host_acceptance_rate <- gsub("\\%", "", hold_out_Mar$host_acceptance_rate)
+
+hold_out_Mar$host_acceptance_rate <- as.numeric(gsub(",", "", hold_out_Mar$host_acceptance_rate))
+
+# Initialize new columns
+hold_out_Mar$num_baths <- numeric(nrow(hold_out_Mar))
+hold_out_Mar$num_shared_baths <- numeric(nrow(hold_out_Mar))
+hold_out_Mar$num_private_baths <- numeric(nrow(hold_out_Mar))
+hold_out_Mar$is_half_bath <- numeric(nrow(hold_out_Mar))
+
+# Extract information using regular expressions
+for (i in seq_along(hold_out_Mar$bathrooms_text)) {
+  # Check for NA
+  if (!is.na(hold_out_Mar$bathrooms_text[i])) {
+    # Extract number and type of bath
+    match <- regmatches(hold_out_Mar$bathrooms_text[i], regexec("(\\d+)\\s*(shared|private)?\\s*baths?", hold_out_Mar$bathrooms_text[i]))[[1]]
+    
+    # Extract number
+    num <- as.numeric(match[2])
+    
+    # Determine type and assign to corresponding variable
+    if (grepl("shared", match[3], ignore.case = TRUE)) {
+      hold_out_Mar$num_shared_baths[i] <- num
+    } else if (grepl("private", match[3], ignore.case = TRUE)) {
+      hold_out_Mar$num_private_baths[i] <- num
+    } else {
+      hold_out_Mar$num_baths[i] <- num
+    }
+    
+    # Check if it is a half bath
+    hold_out_Mar$is_half_bath[i] <- ifelse(grepl("half", tolower(hold_out_Mar$bathrooms_text[i])) || grepl("shared half", tolower(hold_out_Mar$bathrooms_text[i])), 1, 0)
+  }
+}
+
+# Set values to NA if bathrooms_text is NA
+hold_out_Mar$num_baths[is.na(hold_out_Mar$bathrooms_text)] <- NA
+hold_out_Mar$num_shared_baths[is.na(hold_out_Mar$bathrooms_text)] <- NA
+hold_out_Mar$num_private_baths[is.na(hold_out_Mar$bathrooms_text)] <- NA
+hold_out_Mar$is_half_bath[is.na(hold_out_Mar$bathrooms_text)] <- NA
+
+# Drop the original 'bathrooms_text' column
+hold_out_Mar <- subset(hold_out_Mar, select = -bathrooms_text)
+
+## Extracting amenities into dummy variables
+for (amenity in amenities_list) {
+  dummy_variable_name <- paste0(gsub(" ", "_", amenity), "_dummy")
+  hold_out_Mar[[dummy_variable_name]] <- ifelse(sapply(hold_out_Mar$amenities, grepl, pattern = amenity), 1, 0)
+}
+
+# Drop the original 'amenities' column
+hold_out_Mar <- subset(hold_out_Mar, select = -amenities)
+
+## Encoding other variables into dummy variables
+# host_response_time
+hold_out_Mar = dummy_cols(hold_out_Mar, select_columns = "host_response_time", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+# drop host_response_time_NA
+hold_out_Mar <- subset(hold_out_Mar, select = -host_response_time_NA)
+
+# neighbourhood_cleansed
+hold_out_Mar = dummy_cols(hold_out_Mar, select_columns = "neighbourhood_cleansed", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+
+# property_type
+hold_out_Mar = dummy_cols(hold_out_Mar, select_columns = "property_type", remove_first_dummy = TRUE)
+
+# room_type
+hold_out_Mar = dummy_cols(hold_out_Mar, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+
+
+## Creating variable called "time_since_last_review"
+# Convert data to date first
+hold_out_Mar$last_review <- as.Date(hold_out_Mar$last_review, "%Y-%b-%d")
+
+hold_out_Mar$last_scraped <- as.Date(hold_out_Mar$last_scraped, "%Y-%b-%d")
+
+# Calculate the time between the two dates
+hold_out_Mar$time_since_last_review <- hold_out_Mar$last_scraped - hold_out_Mar$last_review
+
+# Removing the used two columns
+hold_out_Mar = hold_out_Mar %>%
+  select(-c(last_review, last_scraped))
+
+
+## Extrating Information about Skytrain, Metro
+hold_out_Mar$near_MRT <- ifelse(
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        hold_out_Mar$description, ignore.case = TRUE) |
+  grepl(paste(MRT_keywords, collapse = "|"), 
+        hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+hold_out_Mar$near_BTS <- ifelse(
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        hold_out_Mar$description, ignore.case = TRUE) |
+  grepl(paste(BTS_keywords, collapse = "|"), 
+        hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+hold_out_Mar$near_ARL <- ifelse(
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        hold_out_Mar$description, ignore.case = TRUE) |
+  grepl(paste(ARL_keywords, collapse = "|"), 
+        hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
+  1, 0
+)
+
+
+hold_out_Mar <- hold_out_Mar %>%
+  mutate(near_MRT = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_MRT))
+
+hold_out_Mar <- hold_out_Mar %>%
+  mutate(near_BTS = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_BTS))
+
+hold_out_Mar <- hold_out_Mar %>%
+  mutate(near_ARL = ifelse(is.na(description) & is.na(neighborhood_overview), NA, near_ARL))
+
+hold_out_Mar = hold_out_Mar %>% select(-c(description, neighborhood_overview))
+
+## Dealing with NAs
+# Drop those with missing values for host_acceptance_rate and host_response_rate
+hold_out_Mar <- hold_out_Mar %>% 
+  filter(!is.na(host_acceptance_rate) & !is.na(host_response_rate))
+
+# Drop those with missing values for baths
+hold_out_Mar <- hold_out_Mar %>% 
+  filter(!is.na(num_baths) & !is.na(num_shared_baths) & !is.na(is_half_bath) & !is.na(num_private_baths))
+
+# Replace NA values in near_MRT, near_BTS, and near_ARL with 0
+
+hold_out_Mar <- hold_out_Mar %>% 
+  mutate(across(c(near_MRT, near_BTS, near_ARL), ~ ifelse(is.na(.), 0, .)))
+
+# Replace NA values in host_is_superhost with 0
+hold_out_Mar <- hold_out_Mar %>% 
+  mutate(host_is_superhost = ifelse(is.na(host_is_superhost), 0, host_is_superhost))
+
+# Replace NA values in time_since_last_review with max
+hold_out_Mar <- hold_out_Mar %>% 
+  mutate(time_since_last_review = ifelse(is.na(time_since_last_review), max(time_since_last_review, na.rm = TRUE), time_since_last_review))
+
+## Replace NA values in scores with mean
+hold_out_Mar <- hold_out_Mar %>% 
+  mutate(across(c(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+# Create a binary flag variable to capture the imputation
+hold_out_Mar <- hold_out_Mar %>% 
+  mutate(review_scores_rating_imputed = ifelse(is.na(review_scores_rating), 1, 0))
+
+## Replace NA values in bedrooms and beds with mean
+hold_out_Mar <- hold_out_Mar %>% 
+  mutate(across(c(bedrooms, beds), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+# Create a binary flag variable to capture the imputation
+hold_out_Mar <- hold_out_Mar %>% 
+  mutate(bedrooms_imputed = ifelse(is.na(bedrooms), 1, 0))
+
+## Keeping only apartments
+hold_out_Mar = hold_out_Mar %>% 
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment"))
+
+# Drop property_type
+hold_out_Mar <- subset(hold_out_Mar, select = -property_type)
+
+## Correcting the missing columns in the holdout set.
+hold_out_Mar$'property_type_Shared room in serviced apartment' <- 0
+```
+
+```{r}
+## Examining NA values again for the holdout set
+
+hold_out_Mar %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  arrange(desc(na_count)) %>% kable()
+
+```
+
+
+```{r}
+## Use OLS model 3 to predict the price and calculate the RMSE
+hold_out_Mar$price_pred <- predict(model_OLS_3, newdata = hold_out_Mar)
+
+# Calculate the RMSE
+RMSE_OLS_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred)
+
+```
+
+
+
 # Task 2
 ```{r}
 ### The live data is data from September 2023. 
 ## Import the data
 Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
 
-## Repeat the same data cleaning process as in Task 1
+## Repeat the same data cleaning process as in Task 1. Keep only apartments.
 Data_Sept = Data_Sept %>% 
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
 
@@ -783,9 +977,6 @@ Data_Sept$host_acceptance_rate <- gsub("\\%", "", Data_Sept$host_acceptance_rate
 
 Data_Sept$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Sept$host_acceptance_rate))
 
-## Let's tranform bathrooms_text.
-Data_Mar %>% 
-  count(bathrooms_text)
 
 # Initialize new columns
 Data_Sept$num_baths <- numeric(nrow(Data_Sept))
@@ -827,6 +1018,13 @@ Data_Sept$is_half_bath[is.na(Data_Sept$bathrooms_text)] <- NA
 Data_Sept <- subset(Data_Sept, select = -bathrooms_text)
 
 ## Extracting amenities into dummy variables
+# List of amenities
+amenities_list <- c("Hair dryer", "Shampoo", "Shower gel", "Air conditioning", "Essentials", 
+                    "Wifi", "Washer", "Iron", "Smoking allowed", "Free parking on premises", 
+                    "Luggage dropoff allowed", "Kitchen", "Refrigerator", "Dining table", 
+                    "Dedicated workspace", "Elevator", "Microwave", "Dishes and silverware", 
+                    "TV", "Pool", "Gym", "Pets allowed")
+
 for (amenity in amenities_list) {
   dummy_variable_name <- paste0(gsub(" ", "_", amenity), "_dummy")
   Data_Sept[[dummy_variable_name]] <- ifelse(sapply(Data_Sept$amenities, grepl, pattern = amenity), 1, 0)
@@ -847,7 +1045,7 @@ Data_Sept = dummy_cols(Data_Sept, select_columns = "neighbourhood_cleansed", rem
 
 
 # property_type
-Data_Sept = dummy_cols(Data_Sept, select_columns = "property_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+Data_Sept = dummy_cols(Data_Sept, select_columns = "property_type", remove_first_dummy = TRUE)
 
 # room_type
 Data_Sept = dummy_cols(Data_Sept, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
@@ -942,6 +1140,11 @@ Data_Sept <- Data_Sept %>%
 Data_Sept <- Data_Sept %>% 
   mutate(bedrooms_imputed = ifelse(is.na(bedrooms), 1, 0))
 
+### Keeping only apartments
+Data_Sept = Data_Sept %>% 
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment"))
 
+# Drop property_type
+Data_Sept <- subset(Data_Sept, select = -property_type)
 ```
 
