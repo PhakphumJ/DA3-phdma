@@ -1237,7 +1237,8 @@ hold_out_Mar %>%
   theme_minimal() +  # Adjust the theme
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
         axis.text = element_text(size = 10),  # Adjust axis text size
-        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
+
 ```
 
 ```{r}
@@ -1251,7 +1252,7 @@ hold_out_Mar %>%
   theme_minimal() +  # Adjust the theme
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
         axis.text = element_text(size = 10),  # Adjust axis text size
-        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 
 ```
 
@@ -1268,7 +1269,7 @@ hold_out_Mar %>%
   theme_minimal() +  # Adjust the theme
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
         axis.text = element_text(size = 10),  # Adjust axis text size
-        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 ```
 
 
