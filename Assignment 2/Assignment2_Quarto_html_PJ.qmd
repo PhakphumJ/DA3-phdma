@@ -1169,21 +1169,46 @@ Mean_price_large <- hold_out_Mar %>%
 ## For each model, calculate the RMSE for small apartments and large apartments in the holdout set using the RMSE function.
 
 # OLS
-RMSE_OLS_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3)$price, hold_out_Mar %>% filter(accommodates <= 3)$price_pred_ols)
+RMSE_OLS_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price), hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_ols))
 
-RMSE_OLS_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3)$price, hold_out_Mar %>% filter(accommodates > 3)$price_pred_ols)
+RMSE_OLS_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3) %>% select(price), hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_ols))
 
 # RF
-RMSE_RF_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3)$price, hold_out_Mar %>% filter(accommodates <= 3)$price_pred_RF)
+RMSE_RF_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price), hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_RF))
 
-RMSE_RF_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3)$price, hold_out_Mar %>% filter(accommodates > 3)$price_pred_RF)
+RMSE_RF_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3) %>% select(price), hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_RF))
 
 # Bagging
-RMSE_bag_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3)$price, hold_out_Mar %>% filter(accommodates <= 3)$price_pred_bag)
+RMSE_bag_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price), hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_bag))
 
-RMSE_bag_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3)$price, hold_out_Mar %>% filter(accommodates > 3)$price_pred_bag)
+RMSE_bag_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3) %>% select(price), hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_bag))
+
+## Divide the RMSE by the mean price for small apartments and large apartments respectively.
+
+# OLS
+RMSE_overprice_OLS_small <- RMSE_OLS_small/Mean_price_small
+
+RMS_overpriceE_OLS_large <- RMSE_OLS_large/Mean_price_large
+
+# RF
+RMSE_overprice_RF_small <- RMSE_RF_small/Mean_price_small
+
+RMSE_overprice_RF_large <- RMSE_RF_large/Mean_price_large
+
+# Bagging
+RMSE_overprice_bag_small <- RMSE_bag_small/Mean_price_small
+
+RMSE_overprice_bag_large <- RMSE_bag_large/Mean_price_large
+
+```
 
 
+```{r}
+## Compile the results (RMSE, RMSE/Mean(Price)) in a table.
+
+RMSE_Holdout_small <- data.frame(RMSE_OLS_Holdout, RMSE_RF_Holdout, RMSE_bagging_optm_Holdout) %>%
+  pivot_longer(everything(), names_to = "model", values_to = "RMSE") %>%
+  mutate(model = c("OLS", "RF", "Bagging"))
 
 ```
 
