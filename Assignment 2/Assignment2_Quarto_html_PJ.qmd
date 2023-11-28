@@ -46,7 +46,7 @@ The definition of sample here (apartments and condos) is wider than the definiti
 
 I split the sample into 2 main parts.
 
-1.  Hold-out set: 25% of apartments randomly selected to be in the hold-out set. I only use apartments because the results on performance in this case would then be closer to the results from actual live data which only contains apartments.
+1.  Hold-out set: 20% of apartments randomly selected to be in the hold-out set. I only use apartments because the results on performance in this case would then be closer to the results from actual live data which only contains apartments.
 2.  Work set: The remaining sample is the work set. It is split further to be training set and test set.
 
 ```{r}
@@ -57,10 +57,10 @@ Data_Mar = Data_Mar %>%
 ### Split sample into hold-out and work set.
 set.seed(20231127)
 
-## hold-out set will only consists of apartments. Split 25% of apartments into hold-out set.
+## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
 hold_out_Mar <- Data_Mar %>%
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
-  sample_frac(0.25)
+  sample_frac(0.20)
 
 ## Subtract hold-out set from the sample to get work set.
 Data_Mar <- Data_Mar %>%
@@ -646,7 +646,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_4 <- update(model_OLS_3, . ~ . + `neighbourhood_cleansed_Bang Kapi` + `neighbourhood_cleansed_Bang Khae` + `neighbourhood_cleansed_Bang Khen` + `neighbourhood_cleansed_Bang Kho laen` + `neighbourhood_cleansed_Bang Khun thain` + `neighbourhood_cleansed_Bang Na` + `neighbourhood_cleansed_Bang Phlat` + `neighbourhood_cleansed_Bang Rak` + `neighbourhood_cleansed_Bang Sue` + `neighbourhood_cleansed_Bangkok Noi` + `neighbourhood_cleansed_Bangkok Yai` + `neighbourhood_cleansed_Bueng Kum` + `neighbourhood_cleansed_Chatu Chak` + `neighbourhood_cleansed_Chom Thong` + `neighbourhood_cleansed_Din Daeng` + `neighbourhood_cleansed_Don Mueang` + `neighbourhood_cleansed_Dusit` + `neighbourhood_cleansed_Huai Khwang` + `neighbourhood_cleansed_Khan Na Yao` +  `neighbourhood_cleansed_Khlong San` + `neighbourhood_cleansed_Khlong Toei` + `neighbourhood_cleansed_Lak Si` + `neighbourhood_cleansed_Lat Krabang` + `neighbourhood_cleansed_Lat Phrao` + `neighbourhood_cleansed_Min Buri` +  `neighbourhood_cleansed_Nong Khaem` + `neighbourhood_cleansed_Phasi Charoen` +   `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Taling Chan` +  `neighbourhood_cleansed_Thon buri` +  `neighbourhood_cleansed_Parthum Wan` + `neighbourhood_cleansed_Phaya Thai` + `neighbourhood_cleansed_Phra Khanong` + `neighbourhood_cleansed_Phra Nakhon` + `neighbourhood_cleansed_Pom Prap Sattru Phai` + `neighbourhood_cleansed_Pra Wet` + `neighbourhood_cleansed_Rat Burana` + `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Suanluang` + `neighbourhood_cleansed_Thung khru` + `neighbourhood_cleansed_Vadhana` + `neighbourhood_cleansed_Wang Thong Lang` + `neighbourhood_cleansed_Yan na wa`, data = train)
+  model_OLS_4 <- update(model_OLS_3, . ~ . + `neighbourhood_cleansed_Bang Kapi` + `neighbourhood_cleansed_Bang Khae` + `neighbourhood_cleansed_Bang Khen` + `neighbourhood_cleansed_Bang Kho laen` + `neighbourhood_cleansed_Bang Khun thain` + `neighbourhood_cleansed_Bang Na` + `neighbourhood_cleansed_Bang Phlat` + `neighbourhood_cleansed_Bang Rak` + `neighbourhood_cleansed_Bang Sue` + `neighbourhood_cleansed_Bangkok Noi` + `neighbourhood_cleansed_Bangkok Yai` + `neighbourhood_cleansed_Bueng Kum` + `neighbourhood_cleansed_Chatu Chak` + `neighbourhood_cleansed_Chom Thong` + `neighbourhood_cleansed_Din Daeng` + `neighbourhood_cleansed_Don Mueang` + `neighbourhood_cleansed_Dusit` + `neighbourhood_cleansed_Huai Khwang` + `neighbourhood_cleansed_Khan Na Yao` +  `neighbourhood_cleansed_Khlong San` + `neighbourhood_cleansed_Khlong Toei` + `neighbourhood_cleansed_Lak Si` + `neighbourhood_cleansed_Lat Krabang` + `neighbourhood_cleansed_Lat Phrao` + `neighbourhood_cleansed_Min Buri` +  `neighbourhood_cleansed_Nong Khaem` + `neighbourhood_cleansed_Phasi Charoen` +   `neighbourhood_cleansed_Ratchathewi` + `neighbourhood_cleansed_Sai Mai` + `neighbourhood_cleansed_Samphanthawong` + `neighbourhood_cleansed_Saphan Sung` + `neighbourhood_cleansed_Sathon` + `neighbourhood_cleansed_Taling Chan` +  `neighbourhood_cleansed_Thon buri` +  `neighbourhood_cleansed_Parthum Wan` + `neighbourhood_cleansed_Phaya Thai` + `neighbourhood_cleansed_Phra Khanong` + `neighbourhood_cleansed_Phra Nakhon` + `neighbourhood_cleansed_Pom Prap Sattru Phai` + `neighbourhood_cleansed_Pra Wet` + `neighbourhood_cleansed_Rat Burana` +      `neighbourhood_cleansed_Suanluang` + `neighbourhood_cleansed_Thung khru` + `neighbourhood_cleansed_Vadhana` + `neighbourhood_cleansed_Wang Thong Lang` + `neighbourhood_cleansed_Yan na wa`, data = train)
   
   # Predict the test data
   test$pred <- predict(model_OLS_4, newdata = test)
@@ -1306,9 +1306,6 @@ Data_Sept = Data_Sept %>%
 Data_Sept$price <- gsub("\\$", "", Data_Sept$price)
 Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
 
-## Converting price from THB to GBP
-Data_Sept$price <- Data_Sept$price * 0.0225
-
 
 # Keep the columns that are used in the model
 Data_Sept = Data_Sept %>% 
@@ -1724,6 +1721,58 @@ Data_Sept %>%
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 ```
 
+It can be seen that there are extreme outliers in the price of the apartments in September. These may partly explain the significance increase in the RMSE of the models. Recall that the maximum price of apartments in March is only around 10,000 THB. 
+
+To get more insights on the performance, I exclude the outliers from the plot.
+
+```{r}
+### Plot without outliers
+## OLS
+Data_Sept %>%
+  ggplot(aes(x = price, y = price_pred_ols)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "OLS - Actual vs Predicted Prices (September 2023)",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, 20000) + ylim(0, 20000)  
+
+```
+
+```{r}
+
+## Plot results from Random Forest 
+Data_Sept %>% 
+  ggplot(aes(x = price, y = price_pred_RF)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Random Forest - Actual vs Predicted Prices (September 2023)",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, 20000) + ylim(0, 20000)  
+
+```
+
+```{r}
+
+## Plot results from Bagging
+
+Data_Sept %>% 
+  ggplot(aes(x = price, y = price_pred_bag)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Bagging - Actual vs Predicted Prices (September 2023)",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, 20000) + ylim(0, 20000)  
+
+```
 
 
 # Task 3 Feature Contribution of the Random Forest Model
@@ -1745,6 +1794,7 @@ shp_viz <- shapviz(treeshap_all, X = data.matrix(hold_out_Mar[,-1]))
 
 
 ```
+
 
 ```{r}
 ### Plotting the results.
