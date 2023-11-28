@@ -831,10 +831,15 @@ kable(results, digits = 2, align = "c") %>%
 
 The optimal stopping rule chosen by CV is minsplit = 6, since it is the model with the lowest RMSE.
 
+
 ```{r}
-## Re-estimate the model with minsplit = 6
+## Re-estimate the model with the optimal stopping rule (minsplit = minsplit_optm)
+
+## Determine the optimal stopping rule
+minsplit_optm <- results[which.min(results$RMSE), "minsplit"]
+
 set.seed(20231127)
-model_bagging_optm <- bagging(price ~ ., data = Data_Mar, nbagg = 200, control = rpart.control(minsplit = 6))
+model_bagging_optm <- bagging(price ~ ., data = Data_Mar, nbagg = 200, control = rpart.control(minsplit = minsplit_optm))
 ```
 
 
