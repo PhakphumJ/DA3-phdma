@@ -24,6 +24,7 @@ library(data.table)
 library(car)
 library(ipred)
 library(rpart) 
+library(randomForest)
 
 # Set Working Directory and Importing Data
 
@@ -43,8 +44,8 @@ The definition of sample here (apartments and condos) is wider than the definiti
 
 I split the sample into 2 main parts.
 
-1.  Hold-out set: 15% of apartments randomly selected to be in the hold-out set. I only use apartments because the results on performance in this case would then be closer to the results from actual live data which only contains apartments.
-2.  Work set: The remaining 85% of the sample is the work set. It is split further to be training set and test set.
+1.  Hold-out set: 25% of apartments randomly selected to be in the hold-out set. I only use apartments because the results on performance in this case would then be closer to the results from actual live data which only contains apartments.
+2.  Work set: The remaining sample is the work set. It is split further to be training set and test set.
 
 ```{r}
 ### Filtering data
@@ -54,10 +55,10 @@ Data_Mar = Data_Mar %>%
 ### Split sample into hold-out and work set.
 set.seed(20231127)
 
-## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
+## hold-out set will only consists of apartments. Split 25% of apartments into hold-out set.
 hold_out_Mar <- Data_Mar %>%
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
-  sample_frac(0.20)
+  sample_frac(0.25)
 
 ## Subtract hold-out set from the sample to get work set.
 Data_Mar <- Data_Mar %>%
@@ -74,9 +75,6 @@ Data_Mar <- Data_Mar %>%
 
 ## Laber Engineering
 
-One part of the task is to compare the results with the case study in London. Therefore, to make the results comparable I convert the price from THB to GBP using the exchange rate on the scraping date which is 0.0238 at 29-03-2023 and 0.0225 at 22-09-2023[^1].
-
-[^1]: The exchange rate is from https://finance.yahoo.com/quote/THBGBP%3DX/history?p=THBGBP%3DX 
 
 ```{r}
 ### Converting the price to numeric 
@@ -86,14 +84,6 @@ Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
 hold_out_Mar$price <- gsub("\\$", "", hold_out_Mar$price)
 hold_out_Mar$price <- as.numeric(gsub(",", "", hold_out_Mar$price))
 
-```
-
-
-```{r}
-## Converting price from THB to GBP
-hold_out_Mar$price <- hold_out_Mar$price * 0.0238
-
-Data_Mar$price <- Data_Mar$price * 0.0238
 ```
 
 
@@ -732,6 +722,14 @@ kable(results, digits = 2, align = "c") %>%
 
 Model 3 is the best performing model with the lowest RMSE.
 
+```{r}
+## Re-esimate the model with the optimal set of variables (Model 3)
+
+model_OLS_optm <- update(model_OLS_2, . ~ . + near_MRT + near_BTS + near_ARL, data = Data_Mar)
+
+```
+
+
 ### Random Forest Model
 
 Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (*mtry*: Number of variables randomly sampled as candidates at each split)
@@ -763,6 +761,16 @@ model_RF <- train(price ~ ., data = Data_Mar, method = "rf", trControl = control
 model_RF
 ```
 
+```{r}
+## Re-estimate the model with the optimal paremeters (mtry = 20)
+set.seed(20231127)
+
+predictors = subset(Data_Mar, select = -c(price))
+model_RF_optm <- randomForest(x = predictors, y = Data_Mar$price, ntree = 200, mtry = 20)
+
+```
+
+
 
 ### Bagging Model
 
@@ -788,7 +796,7 @@ for (parameter in 1:length(minsplit_range)) {
     test <- Data_Mar[-folds[[i]], ]
     
     # Estimate the model
-    model_bagging <- bagging(price ~ ., data = train, nbagg = 25, control = rpart.control(minsplit = minsplit_range[parameter]))
+    model_bagging <- bagging(price ~ ., data = train, nbagg = 200, control = rpart.control(minsplit = minsplit_range[parameter]))
     
     # Predict the test data
     test$pred <- predict(model_bagging, newdata = test)
@@ -820,6 +828,13 @@ kable(results, digits = 2, align = "c") %>%
 ```
 
 The optimal stopping rule chosen by CV is minsplit = 6, since it is the model with the lowest RMSE.
+
+```{r}
+## Re-estimate the model with minsplit = 6
+set.seed(20231127)
+model_bagging_optm <- bagging(price ~ ., data = Data_Mar, nbagg = 200, control = rpart.control(minsplit = 6))
+```
+
 
 ## Evaluating Performance
 
@@ -1023,26 +1038,154 @@ hold_out_Mar %>%
 
 
 ```{r}
-## Use OLS model 3 to predict the price and calculate the RMSE
-hold_out_Mar$price_pred <- predict(model_OLS_3, newdata = hold_out_Mar)
+## Use OLS model 3 to predict the price and calculate the RMSE in the holdout set.
+
+hold_out_Mar$price_pred_ols <- predict(model_OLS_optm, newdata = hold_out_Mar)
 
 # Calculate the RMSE
-RMSE_OLS_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred)
+RMSE_OLS_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_ols)
+
+# Calculate the RMSE/Mean(Price)
+'RMSE_OLS/Mean(Price)' <- RMSE_OLS_Holdout/mean(hold_out_Mar$price)
 
 ```
+
 
 ```{r}
 #| eval: false
 
-## Use the random forest model to predict the price and calculate the RMSE
+## Use the chosen random forest model to predict the price and calculate the RMSE in the holdout set.
 
-hold_out_Mar$price_pred <- predict(model_RF, newdata = hold_out_Mar)
+hold_out_Mar$price_pred_RF <- predict(model_RF_optm, newdata = hold_out_Mar)
 
 # Calculate the RMSE
-RMSE_RF_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred)
+RMSE_RF_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_RF)
+
+# Calculate the RMSE/Mean(Price)
+'RMSE_RF/Mean(Price)' <- RMSE_RF_Holdout/mean(hold_out_Mar$price)
 
 ```
 
+
+```{r}
+
+## Use the estimated bagging model with minsplit = 6 to predict the price and calculate the RMSE in the holdout set.
+
+hold_out_Mar$price_pred_bag <- predict(model_bagging_optm, newdata = hold_out_Mar)
+
+# Calculate the RMSE
+RMSE_bagging_optm_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_bag)
+
+# Calculate the RMSE/Mean(Price)
+'RMSE_Bagging/Mean(Price)' <- RMSE_bagging_optm_Holdout/mean(hold_out_Mar$price)
+
+
+```
+
+```{r}
+## Compile the RMSE results and RMSE/Mean(Price) results for the holdout set
+
+RMSE_Holdout <- data.frame(RMSE_OLS_Holdout, RMSE_RF_Holdout, RMSE_bagging_optm_Holdout) %>%
+  pivot_longer(everything(), names_to = "model", values_to = "RMSE") %>%
+  mutate(model = c("OLS", "RF", "Bagging"))
+
+# add column for RMSE/Mean(Price)
+RMSE_Holdout$'RMSE/Mean(Price)' <- c(`RMSE_OLS/Mean(Price)`, `RMSE_RF/Mean(Price)`, `RMSE_Bagging/Mean(Price)`)
+
+
+
+# Use kable with kableExtra for better formatting
+kable(RMSE_Holdout, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+
+
+```
+
+
+```{r}
+### Plotting the actual price vs predicted price.
+# Have 3 plots. One for each model.
+
+## OLS
+hold_out_Mar %>%
+  ggplot(aes(x = price, y = price_pred_ols)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "OLS - Actual vs Predicted Prices",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+
+```
+
+```{r}
+## Plot results from Random Forest 
+hold_out_Mar %>% 
+  ggplot(aes(x = price, y = price_pred_RF)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Random Forest - Actual vs Predicted Prices",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+
+
+
+```
+
+```{r}
+## Plot results from Bagging
+
+hold_out_Mar %>% 
+  ggplot(aes(x = price, y = price_pred_bag)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Bagging - Actual vs Predicted Prices",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+```
+
+
+```{r}
+### Compare the performance across apartment size (small apartments: M= 3, large apartments > 3)
+
+## Calculate the Mean Price for small apartments and large apartments in the holdout set.
+
+Mean_price_small <- hold_out_Mar %>% 
+  filter(accommodates <= 3) %>% 
+  summarise(Mean_price_small = mean(price))
+
+Mean_price_large <- hold_out_Mar %>% 
+  filter(accommodates > 3) %>% 
+  summarise(Mean_price_large = mean(price))
+
+## For each model, calculate the RMSE for small apartments and large apartments in the holdout set using the RMSE function.
+
+# OLS
+RMSE_OLS_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3)$price, hold_out_Mar %>% filter(accommodates <= 3)$price_pred_ols)
+
+RMSE_OLS_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3)$price, hold_out_Mar %>% filter(accommodates > 3)$price_pred_ols)
+
+# RF
+RMSE_RF_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3)$price, hold_out_Mar %>% filter(accommodates <= 3)$price_pred_RF)
+
+RMSE_RF_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3)$price, hold_out_Mar %>% filter(accommodates > 3)$price_pred_RF)
+
+# Bagging
+RMSE_bag_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3)$price, hold_out_Mar %>% filter(accommodates <= 3)$price_pred_bag)
+
+RMSE_bag_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3)$price, hold_out_Mar %>% filter(accommodates > 3)$price_pred_bag)
+
+
+
+```
 
 
 # Task 2
