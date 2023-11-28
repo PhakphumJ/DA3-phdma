@@ -235,7 +235,7 @@ Data_Mar$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Mar$host_acceptan
 ```
 
 ```{r}
-
+# | output: false
 ## Let's tranform bathrooms_text.
 Data_Mar %>% 
   count(bathrooms_text)
@@ -420,18 +420,20 @@ Data_Mar = Data_Mar %>%
 
 ```
 
+
+### Dealing with NAs
+
 ```{r}
 ## Examining NA values
 
-Data_Mar %>%
+NA_Mar <- Data_Mar %>%
   summarise(across(everything(), ~ sum(is.na(.)))) %>%
   pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
-  arrange(desc(na_count)) %>% kable()
+  arrange(desc(na_count)) 
 
+kable(head(NA_Mar, 10))
 ```
 
-
-### Dealing with NAs
 
 -   For scores, replace it with the mean and add binary flag variable to capture this.
 
@@ -541,6 +543,8 @@ Model 6: *price* = *f*(all variables)
 #### Selecting the best OLS model
 
 ```{r}
+#| output: false
+#| echo: true
 selected_variables <- c("review_scores_rating", "review_scores_accuracy", "review_scores_cleanliness", "review_scores_checkin", "review_scores_communication", "review_scores_location", "review_scores_value")
 
 # Compute the correlation matrix for selected variables
@@ -760,11 +764,11 @@ model_RF
 ```
 
 ```{r}
-## Re-estimate the model with the optimal paremeters (mtry = 20)
+## Re-estimate the model with the optimal paremeters (mtry = model_RF$bestTune$mtry)
 set.seed(20231127)
 
 predictors = subset(Data_Mar, select = -c(price))
-model_RF_optm <- randomForest(x = predictors, y = Data_Mar$price, ntree = 200, mtry = 20)
+model_RF_optm <- randomForest(x = predictors, y = Data_Mar$price, ntree = 200, mtry = model_RF$bestTune$mtry)
 
 ```
 
@@ -1027,12 +1031,14 @@ hold_out_Mar[cols_to_add_holdout] <- 0
 ```{r}
 ## Examining NA values again for the holdout set
 
-hold_out_Mar %>%
+NA_hold_out <- hold_out_Mar %>%
   summarise(across(everything(), ~ sum(is.na(.)))) %>%
   pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
-  arrange(desc(na_count)) %>% kable()
+  arrange(desc(na_count)) 
 
+kable(head(NA_hold_out, 10))
 ```
+
 
 ### RMSE Results
 
