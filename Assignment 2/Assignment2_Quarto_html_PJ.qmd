@@ -22,6 +22,8 @@ library(tidyr)
 library(fastDummies)
 library(data.table)
 library(car)
+library(ipred)
+library(rpart) 
 
 # Set Working Directory and Importing Data
 
@@ -50,7 +52,7 @@ Data_Mar = Data_Mar %>%
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
 
 ### Split sample into hold-out and work set.
-set.seed(20231126)
+set.seed(20231127)
 
 ## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
 hold_out_Mar <- Data_Mar %>%
@@ -224,7 +226,7 @@ Data_Mar$price <- Data_Mar$price * 0.0238
 
 ### Keeping only variables that we are going to use.
 Data_Mar = Data_Mar %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 ```
 
 
@@ -524,13 +526,21 @@ The details of each model will be discussed in the following sections.
 
 I consider 6 linear regression models. The one that will be selected to compared with other two models is the one with the lowest RMSE.
 
-The five models are: 1. Model 1: Only variables related to reviews except the *time_since_last_review* 2. Model 2: Model 1 + characteristics of the living space 3. Model 3: Model 2 + information about rail transportation 4. Model 4: Model 3 + information about the neighborhood 5. Model 5: Model 4 + information about the host 6. Model 6: All variables
+The five models are: 
+1. Model 1: characteristics of the living space (except amenities)
+2. Model 2: Model 1 + variables related to reviews (only those with correaltion less than 0.7 with each other)
+3. Model 3: Model 2 + information about rail transportation 4. Model 4: Model 3 + information about the neighborhood 
+5. Model 5: Model 4 + information about the host 
+6. Model 6: All variables
 
-Model 1: *price* = *f*(*review_scores_rating*, *review_scores_accuracy*, *review_scores_cleanliness*, *review_scores_checkin*, *review_scores_communication*, *review_scores_location*, *review_scores_value*, *review_scores_rating_imputed*)
 
-Model 2: *price* = model 1 + *accommodates*, *bedrooms*, *beds*, *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*, *amenities*
+Model 1: *price* = *f*(*accommodates*, *bedrooms*, *beds*, *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*)
 
-Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*,
+Model 2: *price* = model 1 + *review_scores_rating*, *review_scores_cleanliness*, *review_scores_communication*, *review_scores_location*, *review_scores_rating_imputed*, *time_since_last_review*, *number_of_reviews*
+
+
+Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*
+
 
 Model 4: *price* = model 3 + *neighborhood*
 
@@ -541,9 +551,18 @@ Model 6: *price* = *f*(all variables)
 #### Selecting the best OLS model
 
 ```{r}
+selected_variables <- c("review_scores_rating", "review_scores_accuracy", "review_scores_cleanliness", "review_scores_checkin", "review_scores_communication", "review_scores_location", "review_scores_value")
+
+# Compute the correlation matrix for selected variables
+cor(Data_Mar[, selected_variables], use = "complete.obs")
+
+```
+
+
+```{r}
 
 #### Selecting by using 5-fold cross validation
-set.seed(20231126)
+set.seed(20231127)
 # Getting the indices for 5-fold cross validation
 folds <- createFolds(Data_Mar$price, k = 5, list = TRUE, returnTrain = TRUE)
 
@@ -557,7 +576,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_1 <- lm(price ~ review_scores_rating + review_scores_accuracy + review_scores_cleanliness + review_scores_checkin + review_scores_communication + review_scores_location + review_scores_value + review_scores_rating_imputed, data = train)
+  model_OLS_1 <- lm(price ~ accommodates + bedrooms + beds + num_baths + num_shared_baths + is_half_bath + num_private_baths + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room`, data = train)
   
   # Predict the test data
   test$pred <- predict(model_OLS_1, newdata = test)
@@ -581,7 +600,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_2 <- update(model_OLS_1, . ~ . + accommodates + bedrooms + beds + num_baths + num_shared_baths + is_half_bath + num_private_baths + Hair_dryer_dummy + Shampoo_dummy + TV_dummy + Wifi_dummy + Shower_gel_dummy + Air_conditioning_dummy + Kitchen_dummy + Elevator_dummy + Free_parking_on_premises_dummy + Gym_dummy + Pool_dummy + Washer_dummy + Essentials_dummy + Iron_dummy + Smoking_allowed_dummy + Luggage_dropoff_allowed_dummy + Refrigerator_dummy + Dining_table_dummy + Dedicated_workspace_dummy + Microwave_dummy + Dishes_and_silverware_dummy + Pets_allowed_dummy + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room`, data = train)
+  model_OLS_2 <- update(model_OLS_1, . ~ . + review_scores_rating + review_scores_accuracy + review_scores_cleanliness + review_scores_checkin + review_scores_communication + review_scores_location + review_scores_value + review_scores_rating_imputed + time_since_last_review + number_of_reviews, data = train)
   
   # Predict the test data
   test$pred <- predict(model_OLS_2, newdata = test)
@@ -732,7 +751,7 @@ grid <- expand.grid(mtry = mtry)
 control <- trainControl(method = "cv", number = 5)
 
 # tuning the model
-set.seed(20231126)
+set.seed(20231127)
 
 # I set ntree = 200 for the sake of computation time.
 model_RF <- train(price ~ ., data = Data_Mar, method = "rf", trControl = control, tuneGrid = grid, ntree = 200)
@@ -748,11 +767,59 @@ model_RF
 ### Bagging Model
 
 ```{r}
-# q: What are parameters for bagging that I can tune with caret train function?
-# a: 
+### Constructing the bagging model using ipred package. Choose the optimal stopping rule (minsplit) using 5-fold cross-validation.
+
+# Setting up the range of values for the tuning parameters
+minsplit_range <- c(2, 4, 6, 8, 10)
+
+# Selecting by using 5-fold cross validation
+set.seed(20231127)
+# Getting the indices for 5-fold cross validation
+folds <- createFolds(Data_Mar$price, k = 5, list = TRUE, returnTrain = TRUE)
+
+# Set up the vector to collect the results from each model
+RMSE_Bagging <- c()
+
+for (parameter in 1:length(minsplit_range)) {
+  results <- list()
+   for (i in 1:5) {
+    # Get the training and test data
+    train <- Data_Mar[folds[[i]], ]
+    test <- Data_Mar[-folds[[i]], ]
+    
+    # Estimate the model
+    model_bagging <- bagging(price ~ ., data = train, nbagg = 25, control = rpart.control(minsplit = minsplit_range[parameter]))
+    
+    # Predict the test data
+    test$pred <- predict(model_bagging, newdata = test)
+    
+    # Calculate the RMSE
+    rmse <- RMSE(test$pred, test$price)
+    
+    # Store the results
+    results[[i]] <- rmse
+    
+    # average across the 5 folds
+    avg_rmse <- sqrt(mean(unlist(results)^2))
+   }
+  RMSE_Bagging[parameter] <- avg_rmse
+}
 
 ```
 
+```{r}
+## Combine the results into a data frame
+results <- data.frame(
+  minsplit = minsplit_range,
+  RMSE = RMSE_Bagging
+)
+
+# Print it with Kable
+kable(results, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+```
+
+The optimal stopping rule chosen by CV is minsplit = 6, since it is the model with the lowest RMSE.
 
 ## Evaluating Performance
 
@@ -760,7 +827,7 @@ model_RF
 ### Cleaning the holdout data with the same process.
 # Keep the columns that are used in the model
 hold_out_Mar = hold_out_Mar %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 
 
 # Convert the host_response_rate column to numeric
@@ -999,7 +1066,7 @@ Data_Sept$price <- Data_Sept$price * 0.0225
 
 # Keep the columns that are used in the model
 Data_Sept = Data_Sept %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 
 
 # Convert the host_response_rate column to numeric
