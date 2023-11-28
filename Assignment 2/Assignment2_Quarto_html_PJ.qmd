@@ -2,12 +2,13 @@
 title: "Assignment 2 - AirBnB"
 author: "Phakphum Jatupitpornchan"
 format: html
+execute: 
+  echo: false
+  warning: false
 editor: visual
 ---
 
 ```{r}
-#| echo: false
-#| warning: false
 
 rm(list=ls())
 
@@ -51,9 +52,10 @@ Data_Mar = Data_Mar %>%
 ### Split sample into hold-out and work set.
 set.seed(20231126)
 
-## hold-out set will only consists of apartments. Split 10% of apartments into hold-out set.
+## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
 hold_out_Mar <- Data_Mar %>%
-  sample_frac(0.15)
+  filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment")) %>%
+  sample_frac(0.20)
 
 ## Subtract hold-out set from the sample to get work set.
 Data_Mar <- Data_Mar %>%
@@ -195,7 +197,6 @@ Data_Mar <- Data_Mar %>%
     -   Pets allowed
 
 ```{r}
-#| echo: false
 
 ### Keeping only variables that we are going to use.
 Data_Mar = Data_Mar %>% 
@@ -203,7 +204,6 @@ Data_Mar = Data_Mar %>%
 ```
 
 ```{r}
-#| echo: false
 
 ### Converting the price to numeric 
 Data_Mar$price <- gsub("\\$", "", Data_Mar$price)
@@ -212,7 +212,6 @@ Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
 ```
 
 ```{r}
-#| echo: false
 
 ## Converting host_response_rate to numeric
 Data_Mar$host_response_rate <- gsub("\\%", "", Data_Mar$host_response_rate)
@@ -227,7 +226,6 @@ Data_Mar$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Mar$host_acceptan
 ```
 
 ```{r}
-#| echo: false
 
 ## Let's tranform bathrooms_text.
 Data_Mar %>% 
@@ -239,7 +237,6 @@ Data_Mar %>%
 ```
 
 ```{r}
-#| echo: false
 
 ### Extracting number and types of bathrooms
 ## Start with March
@@ -287,7 +284,6 @@ Data_Mar <- subset(Data_Mar, select = -bathrooms_text)
 ```
 
 ```{r}
-#| echo: false
 
 ### Extracting amenities into dummy variables
 # List of amenities
@@ -313,7 +309,6 @@ Data_Mar <- subset(Data_Mar, select = -amenities)
 \
 
 ```{r}
-#| echo: false
 
 ### Encoding other variables into dummy variables
 ## host_response_time
@@ -338,7 +333,6 @@ Data_Mar = dummy_cols(Data_Mar, select_columns = "room_type", remove_first_dummy
 ```
 
 ```{r}
-#| echo: false
 
 ### Creating variable called "time_since_last_review"
 # Convert data to date first
@@ -361,7 +355,6 @@ Data_Mar = Data_Mar %>%
 ```
 
 ```{r}
-#| echo: false
 ### Extracting Information about Skytrain, Metro
 ## MRT (Subway)
 
@@ -531,8 +524,6 @@ Model 6: *price* = *f*(all variables)
 #### Selecting the best OLS model
 
 ```{r}
-#| echo: false
-#| warning: false
 
 #### Selecting by using 5-fold cross validation
 set.seed(20231126)
@@ -692,7 +683,6 @@ RMSE_OLS_6 <- sqrt(mean(unlist(results)^2))
 ```
 
 ```{r}
-#| Echo = FALSE
 ## Put the results in a data frame
 results <- data.frame(
   Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6"),
@@ -710,7 +700,9 @@ Model 3 is the best performing model with the lowest RMSE.
 
 Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (*mtry*: Number of variables randomly sampled as candidates at each split, *ntree*: Number of trees, *nodesize*: Minimum size of terminal nodes)
 
+
 ```{r}
+#| eval: false
 ## Setting up the random forest
 # specifying the range of values for the tuning parameters
 
@@ -730,6 +722,7 @@ model_RF <- train(price ~ ., data = Data_Mar, method = "rf", trControl = control
 ```
 
 ```{r}
+#| eval: false
 ## Display the results of Random Forest.
 model_RF
 ```
@@ -923,8 +916,13 @@ hold_out_Mar = hold_out_Mar %>%
 # Drop property_type
 hold_out_Mar <- subset(hold_out_Mar, select = -property_type)
 
-## Correcting the missing columns in the holdout set.
-hold_out_Mar$'property_type_Shared room in serviced apartment' <- 0
+### The work set and the holdout set will have different columns because of the size of the holdout set. There might not be observations from some neighbourhooods or observations with certain amenities in the holdout set. Therefore, we need to make sure that the work set and the holdout set have the same columns. 
+
+## Create a list of columns that are in the work set but not in the holdout set
+cols_to_add_holdout <- setdiff(colnames(Data_Mar), colnames(hold_out_Mar))
+
+## Add the columns to the holdout set
+hold_out_Mar[cols_to_add_holdout] <- 0
 ```
 
 ```{r}
@@ -944,6 +942,18 @@ hold_out_Mar$price_pred <- predict(model_OLS_3, newdata = hold_out_Mar)
 
 # Calculate the RMSE
 RMSE_OLS_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred)
+
+```
+
+```{r}
+#| eval: false
+
+## Use the random forest model to predict the price and calculate the RMSE
+
+hold_out_Mar$price_pred <- predict(model_RF, newdata = hold_out_Mar)
+
+# Calculate the RMSE
+RMSE_RF_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred)
 
 ```
 
@@ -1146,5 +1156,17 @@ Data_Sept = Data_Sept %>%
 
 # Drop property_type
 Data_Sept <- subset(Data_Sept, select = -property_type)
+
+
+### The work set and the live data may have different columns. For example, there might not be observations from some neighbourhooods or observations with certain amenities in the live data. Therefore, we need to make sure that the work set and the holdout set have the same columns. 
+
+## Create a list of columns that are in the work set but not in the live data
+cols_to_add_live <- setdiff(colnames(Data_Mar), colnames(Data_Sept))
+
+## Add the columns to the live data
+Data_Sept[cols_to_add_live] <- 0
+
+
+
 ```
 
