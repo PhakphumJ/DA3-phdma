@@ -736,7 +736,6 @@ Next, I consider the random forest model. 5-fold cross-validation is used to tun
 
 
 ```{r}
-#| eval: false
 ## Setting up the random forest
 # specifying the range of values for the tuning parameters
 
@@ -756,7 +755,6 @@ model_RF <- train(price ~ ., data = Data_Mar, method = "rf", trControl = control
 ```
 
 ```{r}
-#| eval: false
 ## Display the results of Random Forest.
 model_RF
 ```
@@ -1036,6 +1034,7 @@ hold_out_Mar %>%
 
 ```
 
+### RMSE Results
 
 ```{r}
 ## Use OLS model 3 to predict the price and calculate the RMSE in the holdout set.
@@ -1052,7 +1051,6 @@ RMSE_OLS_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_ols)
 
 
 ```{r}
-#| eval: false
 
 ## Use the chosen random forest model to predict the price and calculate the RMSE in the holdout set.
 
@@ -1092,64 +1090,6 @@ RMSE_Holdout <- data.frame(RMSE_OLS_Holdout, RMSE_RF_Holdout, RMSE_bagging_optm_
 # add column for RMSE/Mean(Price)
 RMSE_Holdout$'RMSE/Mean(Price)' <- c(`RMSE_OLS/Mean(Price)`, `RMSE_RF/Mean(Price)`, `RMSE_Bagging/Mean(Price)`)
 
-
-
-# Use kable with kableExtra for better formatting
-kable(RMSE_Holdout, digits = 2, align = "c") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-
-
-```
-
-
-```{r}
-### Plotting the actual price vs predicted price.
-# Have 3 plots. One for each model.
-
-## OLS
-hold_out_Mar %>%
-  ggplot(aes(x = price, y = price_pred_ols)) +
-  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
-  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
-  labs(title = "OLS - Actual vs Predicted Prices",
-       x = "Actual Price", y = "Predicted Price") +
-  theme_minimal() +  # Adjust the theme
-  theme(plot.title = element_text(hjust = 0.5),  # Center the title
-        axis.text = element_text(size = 10),  # Adjust axis text size
-        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
-
-```
-
-```{r}
-## Plot results from Random Forest 
-hold_out_Mar %>% 
-  ggplot(aes(x = price, y = price_pred_RF)) +
-  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
-  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
-  labs(title = "Random Forest - Actual vs Predicted Prices",
-       x = "Actual Price", y = "Predicted Price") +
-  theme_minimal() +  # Adjust the theme
-  theme(plot.title = element_text(hjust = 0.5),  # Center the title
-        axis.text = element_text(size = 10),  # Adjust axis text size
-        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
-
-
-
-```
-
-```{r}
-## Plot results from Bagging
-
-hold_out_Mar %>% 
-  ggplot(aes(x = price, y = price_pred_bag)) +
-  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
-  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
-  labs(title = "Bagging - Actual vs Predicted Prices",
-       x = "Actual Price", y = "Predicted Price") +
-  theme_minimal() +  # Adjust the theme
-  theme(plot.title = element_text(hjust = 0.5),  # Center the title
-        axis.text = element_text(size = 10),  # Adjust axis text size
-        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
 ```
 
 
@@ -1208,12 +1148,127 @@ RMSE_overprice_bag_large <- RMSE_bag_large/Mean_price_large
 
 
 ```{r}
-## Compile the results (RMSE, RMSE/Mean(Price)) in a table.
+## Compile the results (RMSE, RMSE/Mean(Price)) in a table. The rows are small and large apartments.
 
-RMSE_Holdout_small <- data.frame(RMSE_OLS_Holdout, RMSE_RF_Holdout, RMSE_bagging_optm_Holdout) %>%
-  pivot_longer(everything(), names_to = "model", values_to = "RMSE") %>%
-  mutate(model = c("OLS", "RF", "Bagging"))
+## RMSE
+# For small apartments
+RMSE_Holdout_small <- data.frame(RMSE_OLS_small, RMSE_RF_small, RMSE_bag_small) %>% 
+  rename(OLS = RMSE_OLS_small, RF = RMSE_RF_small, Bagging = RMSE_bag_small)
 
+
+# For large apartments
+RMSE_Holdout_large <- data.frame(RMSE_OLS_large, RMSE_RF_large, RMSE_bag_large) %>% 
+  rename(OLS = RMSE_OLS_large, RF = RMSE_RF_large, Bagging = RMSE_bag_large)
+
+
+# Compile the results in a table
+RMSE_Holdout_size <- rbind(RMSE_Holdout_small, RMSE_Holdout_large) 
+
+# Renaming rows
+rownames(RMSE_Holdout_size) <- c("Small Apartments", "Large Apartments")
+
+## RMSE/Mean(Price)
+# For small apartments
+RMSE_overprice_Holdout_small <- data.frame(RMSE_overprice_OLS_small, RMSE_overprice_RF_small, RMSE_overprice_bag_small) %>% 
+  rename(OLS = Mean_price_small, RF = `Mean_price_small.1`, Bagging = `Mean_price_small.2`)
+
+
+# For large apartments
+RMSE_overprice_Holdout_large <- data.frame(RMS_overpriceE_OLS_large, RMSE_overprice_RF_large, RMSE_overprice_bag_large) %>% 
+  rename(OLS = Mean_price_large, RF = `Mean_price_large.1`, Bagging = `Mean_price_large.2`)
+
+
+# Compile the results in a table
+RMSE_overprice_Holdout_size <- rbind(RMSE_overprice_Holdout_small, RMSE_overprice_Holdout_large)
+
+# Renaming rows
+rownames(RMSE_overprice_Holdout_size) <- c("Small Apartments", "Large Apartments")
+
+
+## Compile all results in a table
+Holdout_size <- cbind(RMSE_Holdout_size, RMSE_overprice_Holdout_size)
+
+# Renaming columns
+colnames(Holdout_size) <- c("RMSE_OLS", "RMSE_RF", "RMSE_Bagging", "RMSE/Mean(Price)_OLS", "RMSE/Mean(Price)_RF", "RMSE/Mean(Price)_Bagging")
+
+
+```
+
+```{r}
+## Combine RMSE_Holdout and Holdout_size in a table.
+# Transform RMSE_Holdout to wide format.
+
+RMSE_Holdout_wide <- RMSE_Holdout %>% 
+  pivot_wider(names_from = model, values_from = c(RMSE, `RMSE/Mean(Price)`))
+
+# Add the row name
+rownames(RMSE_Holdout_wide) <- c("All Apartments")
+
+
+# Combine the two tables
+Holdout_All_results <- rbind(Holdout_size, RMSE_Holdout_wide)
+
+# Add the mean price column
+Holdout_All_results <- Holdout_All_results %>% 
+  mutate(Mean_price = c(Mean_price_small, Mean_price_large, mean(hold_out_Mar$price)))
+
+```
+
+```{r}
+## Print the results 
+# Use kable with kableExtra for better formatting
+kable(Holdout_All_results, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+
+```
+### Plotting the actual price vs predicted price.
+
+```{r}
+### Plotting the actual price vs predicted price.
+# Have 3 plots. One for each model.
+
+## OLS
+hold_out_Mar %>%
+  ggplot(aes(x = price, y = price_pred_ols)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "OLS - Actual vs Predicted Prices",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+```
+
+```{r}
+## Plot results from Random Forest 
+hold_out_Mar %>% 
+  ggplot(aes(x = price, y = price_pred_RF)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Random Forest - Actual vs Predicted Prices",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
+
+```
+
+
+```{r}
+## Plot results from Bagging
+
+hold_out_Mar %>% 
+  ggplot(aes(x = price, y = price_pred_bag)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Bagging - Actual vs Predicted Prices",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold"))  # Adjust axis title size and make it bold
 ```
 
 
