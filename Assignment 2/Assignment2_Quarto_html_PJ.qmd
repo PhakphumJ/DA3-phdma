@@ -431,7 +431,7 @@ NA_Mar <- Data_Mar %>%
   pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
   arrange(desc(na_count)) 
 
-kable(head(NA_Mar, 10))
+kable(head(NA_Mar, 15))
 ```
 
 
@@ -1041,7 +1041,7 @@ NA_hold_out <- hold_out_Mar %>%
   pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
   arrange(desc(na_count)) 
 
-kable(head(NA_hold_out, 10))
+kable(head(NA_hold_out, 5))
 ```
 
 
@@ -1049,6 +1049,8 @@ kable(head(NA_hold_out, 10))
 
 ```{r}
 ## Use OLS model 3 to predict the price and calculate the RMSE in the holdout set.
+
+# Use OLS
 
 hold_out_Mar$price_pred_ols <- predict(model_OLS_optm, newdata = hold_out_Mar)
 
@@ -1246,7 +1248,7 @@ hold_out_Mar %>%
   ggplot(aes(x = price, y = price_pred_ols)) +
   geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
   geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
-  labs(title = "OLS - Actual vs Predicted Prices",
+  labs(title = "OLS - Actual vs Predicted Prices (March 2023)",
        x = "Actual Price", y = "Predicted Price") +
   theme_minimal() +  # Adjust the theme
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
@@ -1261,7 +1263,7 @@ hold_out_Mar %>%
   ggplot(aes(x = price, y = price_pred_RF)) +
   geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
   geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
-  labs(title = "Random Forest - Actual vs Predicted Prices",
+  labs(title = "Random Forest - Actual vs Predicted Prices (March 2023)",
        x = "Actual Price", y = "Predicted Price") +
   theme_minimal() +  # Adjust the theme
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
@@ -1278,7 +1280,7 @@ hold_out_Mar %>%
   ggplot(aes(x = price, y = price_pred_bag)) +
   geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
   geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
-  labs(title = "Bagging - Actual vs Predicted Prices",
+  labs(title = "Bagging - Actual vs Predicted Prices (March 2023)",
        x = "Actual Price", y = "Predicted Price") +
   theme_minimal() +  # Adjust the theme
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
@@ -1492,7 +1494,7 @@ Data_Sept = Data_Sept %>%
 Data_Sept <- subset(Data_Sept, select = -property_type)
 
 
-### The work set and the live data may have different columns. For example, there might not be observations from some neighbourhooods or observations with certain amenities in the live data. Therefore, we need to make sure that the work set and the holdout set have the same columns. 
+### The work set and the live data may have different columns. For example, there might not be observations from some neighbourhooods or observations with certain amenities in the live data. Therefore, we need to make sure that the work set and the live data have the same columns. 
 
 ## Create a list of columns that are in the work set but not in the live data
 cols_to_add_live <- setdiff(colnames(Data_Mar), colnames(Data_Sept))
@@ -1502,5 +1504,221 @@ Data_Sept[cols_to_add_live] <- 0
 
 
 
+```
+
+In task, I use the three model trained and selectected by using data from March 2023 to predict the price of apartments in September 2023 (live data). 
+
+```{r}
+## Predict the price using OLS Model.
+Data_Sept$price_pred_ols <- predict(model_OLS_optm, newdata = Data_Sept)
+
+## Predict the price using Random Forest Model.
+Data_Sept$price_pred_RF <- predict(model_RF_optm, newdata = Data_Sept)
+
+## Predict the price using Bagging Model.
+Data_Sept$price_pred_bag <- predict(model_bagging_optm, newdata = Data_Sept)
+
+```
+
+```{r}
+#### Repeat the same process of calculating and compiling RMSEs.
+
+## Calculate the RMSE for OLS Model.
+RMSE_OLS_Live <- RMSE(Data_Sept$price, Data_Sept$price_pred_ols)
+
+# Calculate the RMSE/Mean(Price)
+'RMSE_OLS/Mean(Price)' <- RMSE_OLS_Live/mean(Data_Sept$price)
+
+## Calculate the RMSE for Random Forest Model.
+RMSE_RF_Live <- RMSE(Data_Sept$price, Data_Sept$price_pred_RF)
+
+# Calculate the RMSE/Mean(Price)
+'RMSE_RF/Mean(Price)' <- RMSE_RF_Live/mean(Data_Sept$price)
+
+## Calculate the RMSE for Bagging Model.
+RMSE_bag_Live <- RMSE(Data_Sept$price, Data_Sept$price_pred_bag)
+
+# Calculate the RMSE/Mean(Price)
+'RMSE_bag/Mean(Price)' <- RMSE_bag_Live/mean(Data_Sept$price)
+
+## Compile the RMSE results and RMSE/Mean(Price) results for the live data.
+
+RMSE_Live <- data.frame(RMSE_OLS_Live, RMSE_RF_Live, RMSE_bag_Live) %>%
+  pivot_longer(everything(), names_to = "model", values_to = "RMSE") %>%
+  mutate(model = c("OLS", "RF", "Bagging"))
+
+
+# add column for RMSE/Mean(Price)
+RMSE_Live$'RMSE/Price' <- c(`RMSE_OLS/Mean(Price)`, `RMSE_RF/Mean(Price)`, `RMSE_bag/Mean(Price)`)
+
+# Transform RMSE_Live to wide format.
+
+RMSE_Live_wide <- RMSE_Live %>% 
+  pivot_wider(names_from = model, values_from = c(RMSE, `RMSE/Price`))
+
+
+# Add the row name
+rownames(RMSE_Live_wide) <- c("All Apartments")
+
+### Compare the performance across apartment size (small apartments: M= 3, large apartments > 3)
+
+## Calculate the Mean Price for small apartments and large apartments in the live data.
+
+Mean_price_small <- Data_Sept %>% 
+  filter(accommodates <= 3) %>% 
+  summarise(Mean_price_small = mean(price))
+
+Mean_price_large <- Data_Sept %>% 
+  filter(accommodates > 3) %>% 
+  summarise(Mean_price_large = mean(price))
+
+## For each model, calculate the RMSE for small apartments and large apartments in the live data using the RMSE function.
+
+# OLS
+
+RMSE_OLS_small <- RMSE(as.data.frame(Data_Sept %>% filter(accommodates <= 3) %>% select(price))$price, as.data.frame(Data_Sept %>% filter(accommodates <= 3) %>% select(price_pred_ols))$price_pred_ols)
+
+RMSE_OLS_large <- RMSE(as.data.frame(Data_Sept %>% filter(accommodates > 3) %>% select(price))$price, as.data.frame(Data_Sept %>% filter(accommodates > 3) %>% select(price_pred_ols))$price_pred_ols)
+
+
+# RF
+
+RMSE_RF_small <- RMSE(as.data.frame(Data_Sept %>% filter(accommodates <= 3) %>% select(price))$price, as.data.frame(Data_Sept %>% filter(accommodates <= 3) %>% select(price_pred_RF))$price_pred_RF)
+
+RMSE_RF_large <- RMSE(as.data.frame(Data_Sept %>% filter(accommodates > 3) %>% select(price))$price, as.data.frame(Data_Sept %>% filter(accommodates > 3) %>% select(price_pred_RF))$price_pred_RF)
+
+
+# Bagging
+
+RMSE_bag_small <- RMSE(as.data.frame(Data_Sept %>% filter(accommodates <= 3) %>% select(price))$price, as.data.frame(Data_Sept %>% filter(accommodates <= 3) %>% select(price_pred_bag))$price_pred_bag)
+
+RMSE_bag_large <- RMSE(as.data.frame(Data_Sept %>% filter(accommodates > 3) %>% select(price))$price, as.data.frame(Data_Sept %>% filter(accommodates > 3) %>% select(price_pred_bag))$price_pred_bag)
+
+## Divide the RMSE by the mean price for small apartments and large apartments respectively.
+
+# OLS
+RMSE_overprice_OLS_small <- RMSE_OLS_small/Mean_price_small
+
+RMS_overpriceE_OLS_large <- RMSE_OLS_large/Mean_price_large
+
+# RF
+RMSE_overprice_RF_small <- RMSE_RF_small/Mean_price_small
+
+RMSE_overprice_RF_large <- RMSE_RF_large/Mean_price_large
+
+# Bagging
+RMSE_overprice_bag_small <- RMSE_bag_small/Mean_price_small
+
+RMSE_overprice_bag_large <- RMSE_bag_large/Mean_price_large
+
+## Compile the results (RMSE, RMSE/Mean(Price)) in a table. The rows are small and large apartments.
+
+## RMSE
+# For small apartments
+RMSE_Live_small <- data.frame(RMSE_OLS_small, RMSE_RF_small, RMSE_bag_small) %>% 
+  rename(OLS = RMSE_OLS_small, RF = RMSE_RF_small, Bagging = RMSE_bag_small)
+
+
+# For large apartments
+RMSE_Live_large <- data.frame(RMSE_OLS_large, RMSE_RF_large, RMSE_bag_large) %>% 
+  rename(OLS = RMSE_OLS_large, RF = RMSE_RF_large, Bagging = RMSE_bag_large)
+
+
+# Compile the results in a table
+RMSE_Live_size <- rbind(RMSE_Live_small, RMSE_Live_large) 
+
+# Renaming rows
+rownames(RMSE_Live_size) <- c("Small Apartments", "Large Apartments")
+
+## RMSE/Mean(Price)
+# For small apartments
+RMSE_overprice_Live_small <- data.frame(RMSE_overprice_OLS_small, RMSE_overprice_RF_small, RMSE_overprice_bag_small) %>% 
+  rename(OLS = Mean_price_small, RF = `Mean_price_small.1`, Bagging = `Mean_price_small.2`)
+
+
+# For large apartments
+RMSE_overprice_Live_large <- data.frame(RMS_overpriceE_OLS_large, RMSE_overprice_RF_large, RMSE_overprice_bag_large) %>% 
+  rename(OLS = Mean_price_large, RF = `Mean_price_large.1`, Bagging = `Mean_price_large.2`)
+
+
+# Compile the results in a table
+RMSE_overprice_Live_size <- rbind(RMSE_overprice_Live_small, RMSE_overprice_Live_large)
+
+# Renaming rows
+rownames(RMSE_overprice_Live_size) <- c("Small Apartments", "Large Apartments")
+
+
+## Compile all results in a table
+Live_size <- cbind(RMSE_Live_size, RMSE_overprice_Live_size)
+
+# Renaming columns
+colnames(Live_size) <- c("RMSE_OLS", "RMSE_RF", "RMSE_Bagging", "RMSE/Price_OLS", "RMSE/Price_RF", "RMSE/Price_Bagging")
+
+## Combine RMSE_Live and Live_size in a table.
+
+# Combine the two tables
+Live_All_results <- rbind(Live_size, RMSE_Live_wide)
+
+# Add the mean price column
+Live_All_results <- Live_All_results %>% 
+  mutate(Mean_price = c(Mean_price_small, Mean_price_large, mean(Data_Sept$price)))
+
+# Make the mean price column to be numeric
+Live_All_results$Mean_price <- as.numeric(Live_All_results$Mean_price)
+
+```
+
+```{r}
+## Print the results 
+# Use kable with kableExtra for better formatting
+kable(Live_All_results, digits = 2, align = "c") %>%
+  kable_styling(latex_options = c("scale_down", "hold_position", "striped"))
+
+```
+
+```{r}
+### Let's plot Yhat vs Y again
+
+## OLS
+Data_Sept %>%
+  ggplot(aes(x = price, y = price_pred_ols)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "OLS - Actual vs Predicted Prices (September 2023)",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
+
+```
+
+```{r}
+## Plot results from Random Forest 
+Data_Sept %>% 
+  ggplot(aes(x = price, y = price_pred_RF)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Random Forest - Actual vs Predicted Prices (September 2023)",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
+```
+
+```{r}
+## Plot results from Bagging
+
+Data_Sept %>% 
+  ggplot(aes(x = price, y = price_pred_bag)) +
+  geom_point(color = "steelblue", alpha = 0.7) +  # Adjust point aesthetics
+  geom_smooth(method = "lm", se = FALSE, color = "orange", linetype = "dashed", linewidth = 1) +  # Add a smoother line
+  labs(title = "Bagging - Actual vs Predicted Prices (September 2023)",
+       x = "Actual Price", y = "Predicted Price") +
+  theme_minimal() +  # Adjust the theme
+  theme(plot.title = element_text(hjust = 0.5),  # Center the title
+        axis.text = element_text(size = 10),  # Adjust axis text size
+        axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 ```
 
