@@ -70,6 +70,30 @@ Data_Mar <- Data_Mar %>%
 
 ```
 
+## Laber Engineering
+
+One part of the task is to compare the results with the case study in London. Therefore, to make the results comparable I convert the price from THB to GBP using the exchange rate on the scraping date which is 0.0238 at 29-03-2023 and 0.0225 at 22-09-2023[^1].
+
+[^1]: The exchange rate is from https://finance.yahoo.com/quote/THBGBP%3DX/history?p=THBGBP%3DX 
+
+```{r}
+### Converting the price to numeric 
+Data_Mar$price <- gsub("\\$", "", Data_Mar$price)
+Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
+
+hold_out_Mar$price <- gsub("\\$", "", hold_out_Mar$price)
+hold_out_Mar$price <- as.numeric(gsub(",", "", hold_out_Mar$price))
+
+```
+
+
+```{r}
+## Converting price from THB to GBP
+hold_out_Mar$price <- hold_out_Mar$price * 0.0238
+
+Data_Mar$price <- Data_Mar$price * 0.0238
+```
+
 
 
 ## Features Engineering
@@ -203,13 +227,6 @@ Data_Mar = Data_Mar %>%
   select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 ```
 
-```{r}
-
-### Converting the price to numeric 
-Data_Mar$price <- gsub("\\$", "", Data_Mar$price)
-Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
-
-```
 
 ```{r}
 
@@ -698,7 +715,7 @@ Model 3 is the best performing model with the lowest RMSE.
 
 ### Random Forest Model
 
-Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (*mtry*: Number of variables randomly sampled as candidates at each split, *ntree*: Number of trees, *nodesize*: Minimum size of terminal nodes)
+Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (*mtry*: Number of variables randomly sampled as candidates at each split)
 
 
 ```{r}
@@ -730,6 +747,11 @@ model_RF
 
 ### Bagging Model
 
+```{r}
+# q: What are parameters for bagging that I can tune with caret train function?
+# a: 
+
+```
 
 
 ## Evaluating Performance
@@ -740,9 +762,6 @@ model_RF
 hold_out_Mar = hold_out_Mar %>% 
   select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 
-# Convert the price column to numeric
-hold_out_Mar$price <- gsub("\\$", "", hold_out_Mar$price)
-hold_out_Mar$price <- as.numeric(gsub(",", "", hold_out_Mar$price))
 
 # Convert the host_response_rate column to numeric
 hold_out_Mar$host_response_rate <- gsub("\\%", "", hold_out_Mar$host_response_rate)
@@ -969,13 +988,19 @@ Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("
 Data_Sept = Data_Sept %>% 
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
 
-# Keep the columns that are used in the model
-Data_Sept = Data_Sept %>% 
-  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
 
 # Convert the price column to numeric
 Data_Sept$price <- gsub("\\$", "", Data_Sept$price)
 Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
+
+## Converting price from THB to GBP
+Data_Sept$price <- Data_Sept$price * 0.0225
+
+
+# Keep the columns that are used in the model
+Data_Sept = Data_Sept %>% 
+  select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, number_of_reviews_ltm, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
+
 
 # Convert the host_response_rate column to numeric
 Data_Sept$host_response_rate <- gsub("\\%", "", Data_Sept$host_response_rate)
