@@ -1088,7 +1088,7 @@ RMSE_Holdout <- data.frame(RMSE_OLS_Holdout, RMSE_RF_Holdout, RMSE_bagging_optm_
   mutate(model = c("OLS", "RF", "Bagging"))
 
 # add column for RMSE/Mean(Price)
-RMSE_Holdout$'RMSE/Mean(Price)' <- c(`RMSE_OLS/Mean(Price)`, `RMSE_RF/Mean(Price)`, `RMSE_Bagging/Mean(Price)`)
+RMSE_Holdout$'RMSE/Price' <- c(`RMSE_OLS/Mean(Price)`, `RMSE_RF/Mean(Price)`, `RMSE_Bagging/Mean(Price)`)
 
 ```
 
@@ -1189,7 +1189,7 @@ rownames(RMSE_overprice_Holdout_size) <- c("Small Apartments", "Large Apartments
 Holdout_size <- cbind(RMSE_Holdout_size, RMSE_overprice_Holdout_size)
 
 # Renaming columns
-colnames(Holdout_size) <- c("RMSE_OLS", "RMSE_RF", "RMSE_Bagging", "RMSE/Mean(Price)_OLS", "RMSE/Mean(Price)_RF", "RMSE/Mean(Price)_Bagging")
+colnames(Holdout_size) <- c("RMSE_OLS", "RMSE_RF", "RMSE_Bagging", "RMSE/Price_OLS", "RMSE/Price_RF", "RMSE/Price_Bagging")
 
 
 ```
@@ -1199,7 +1199,7 @@ colnames(Holdout_size) <- c("RMSE_OLS", "RMSE_RF", "RMSE_Bagging", "RMSE/Mean(Pr
 # Transform RMSE_Holdout to wide format.
 
 RMSE_Holdout_wide <- RMSE_Holdout %>% 
-  pivot_wider(names_from = model, values_from = c(RMSE, `RMSE/Mean(Price)`))
+  pivot_wider(names_from = model, values_from = c(RMSE, `RMSE/Price`))
 
 # Add the row name
 rownames(RMSE_Holdout_wide) <- c("All Apartments")
@@ -1212,13 +1212,16 @@ Holdout_All_results <- rbind(Holdout_size, RMSE_Holdout_wide)
 Holdout_All_results <- Holdout_All_results %>% 
   mutate(Mean_price = c(Mean_price_small, Mean_price_large, mean(hold_out_Mar$price)))
 
+# Make the mean price column to be numeric
+Holdout_All_results$Mean_price <- as.numeric(Holdout_All_results$Mean_price)
+
 ```
 
 ```{r}
 ## Print the results 
 # Use kable with kableExtra for better formatting
 kable(Holdout_All_results, digits = 2, align = "c") %>%
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+  kable_styling(latex_options = c("scale_down", "hold_position", "striped"))
 
 ```
 ### Plotting the actual price vs predicted price.
