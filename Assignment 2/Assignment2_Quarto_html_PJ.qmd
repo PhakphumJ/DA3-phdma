@@ -25,6 +25,8 @@ library(car)
 library(ipred)
 library(rpart) 
 library(randomForest)
+library(treeshap)
+library(shapviz)
 
 # Set Working Directory and Importing Data
 
@@ -1722,3 +1724,33 @@ Data_Sept %>%
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 ```
 
+
+
+# Task 3 Feature Contribution of the Random Forest Model
+
+In this section, SHAP values are used to explain the predictions of the Random Forest model in the holdout set. Specifically, SHAP (SHapley Additive exPlanations) is used. I use packages 'treeshap' and 'shapviz' to implement this task.
+
+```{r}
+## Create a unified model object.
+# This is required for the shap functions to work.
+
+unified <- unify(model_RF_optm, hold_out_Mar)
+
+
+## Produce SHAP values
+treeshap_all <- treeshap(unified, hold_out_Mar)
+
+## Create shapviz object
+shp_viz <- shapviz(treeshap_all, X = hold_out_Mar)
+
+
+```
+
+```{r}
+### Plotting the results.
+
+## Variable Importance
+sv_importance(shp_viz)
+
+```
+data.matrix(hold_out_Mar[,-1])
