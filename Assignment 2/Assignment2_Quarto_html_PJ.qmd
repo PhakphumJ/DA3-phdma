@@ -1169,19 +1169,23 @@ Mean_price_large <- hold_out_Mar %>%
 ## For each model, calculate the RMSE for small apartments and large apartments in the holdout set using the RMSE function.
 
 # OLS
-RMSE_OLS_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price), hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_ols))
+RMSE_OLS_small <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price))$price, as.data.frame(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_ols))$price_pred_ols)
 
-RMSE_OLS_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3) %>% select(price), hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_ols))
+RMSE_OLS_large <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price))$price, as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_ols))$price_pred_ols)
 
 # RF
-RMSE_RF_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price), hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_RF))
+RMSE_RF_small <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price))$price, as.data.frame(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_RF))$price_pred_RF)
 
-RMSE_RF_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3) %>% select(price), hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_RF))
+RMSE_RF_large <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price))$price, as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_RF))$price_pred_RF)
 
 # Bagging
-RMSE_bag_small <- RMSE(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price), hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_bag))
+RMSE_bag_small <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price))$price, as.data.frame(hold_out_Mar %>% filter(accommodates <= 3) %>% select(price_pred_bag))$price_pred_bag)
 
-RMSE_bag_large <- RMSE(hold_out_Mar %>% filter(accommodates > 3) %>% select(price), hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_bag))
+RMSE_bag_large <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price))$price, as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_bag))$price_pred_bag)
+
+```
+
+```{r}
 
 ## Divide the RMSE by the mean price for small apartments and large apartments respectively.
 
