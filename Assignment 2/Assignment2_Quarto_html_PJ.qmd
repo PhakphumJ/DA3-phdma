@@ -88,20 +88,6 @@ hold_out_Mar$price <- as.numeric(gsub(",", "", hold_out_Mar$price))
 
 ```
 
-I convert the price from THB to GBP using the exchange rate on the date that data is scarped. This is to improve comparability with the case study and improve computational efficiency.
-
-The exchange rates are 0.0238 GBP/THB on 29-03-2023 and 0.0223	GBP/THB on 22-09-2023 [^1].
-
-[^1]: The data used is the opening exchange rate from Yahoo Finance: https://finance.yahoo.com/quote/THBGBP%3DX/history?p=THBGBP%3DX
-
-```{r}
-## Converting price to GBP
-Data_Mar$price <- Data_Mar$price * 0.0238
-
-hold_out_Mar$price <- hold_out_Mar$price * 0.0238
-
-
-```
 
 
 ## Features Engineering
@@ -1320,8 +1306,7 @@ Data_Sept = Data_Sept %>%
 Data_Sept$price <- gsub("\\$", "", Data_Sept$price)
 Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
 
-## Converting price to GBP
-Data_Sept$price <- Data_Sept$price * 0.0223
+
 
 # Keep the columns that are used in the model
 Data_Sept = Data_Sept %>% 
