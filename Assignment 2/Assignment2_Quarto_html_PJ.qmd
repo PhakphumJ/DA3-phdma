@@ -1307,6 +1307,7 @@ Data_Sept$price <- gsub("\\$", "", Data_Sept$price)
 Data_Sept$price <- as.numeric(gsub(",", "", Data_Sept$price))
 
 
+
 # Keep the columns that are used in the model
 Data_Sept = Data_Sept %>% 
   select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, last_review, last_scraped, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
