@@ -786,8 +786,8 @@ RMSE_OLS_8 <- sqrt(mean(unlist(results)^2))
 ```{r}
 ## Put the results in a data frame
 results <- data.frame(
-  Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6"),
-  RMSE = c(RMSE_OLS_1, RMSE_OLS_2, RMSE_OLS_3, RMSE_OLS_4, RMSE_OLS_5, RMSE_OLS_6)
+  Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6", "OLS_7", "OLS_7"),
+  RMSE = c(RMSE_OLS_1, RMSE_OLS_2, RMSE_OLS_3, RMSE_OLS_4, RMSE_OLS_5, RMSE_OLS_6, RMSE_OLS_7, RMSE_OLS_8)
 )
 
 # Print the table with borders
@@ -795,10 +795,10 @@ kable(results, digits = 2, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 ```
 
-Model 3 is the best performing model with the lowest RMSE.
+Model 2 and Model 3 have the lowest RMSE. I will choose Model 2 as the final model because it has the lowest number of variables.
 
 ```{r}
-## Re-esimate the model with the optimal set of variables (Model 3)
+## Re-esimate the model with the optimal set of variables (Model 2)
 
 model_OLS_optm <- update(model_OLS_2, . ~ . + near_MRT + near_BTS + near_ARL, data = Data_Mar)
 
