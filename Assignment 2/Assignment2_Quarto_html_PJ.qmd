@@ -55,7 +55,7 @@ Data_Mar = Data_Mar %>%
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
 
 ### Split sample into hold-out and work set.
-set.seed(20231130)
+set.seed(20231127)
 
 ## hold-out set will only consists of apartments. Split 20% of apartments into hold-out set.
 hold_out_Mar <- Data_Mar %>%
@@ -521,29 +521,29 @@ The details of each model will be discussed in the following sections.
 
 The eight models are: 
 
-1. Model 1: number of people that can be accommodated (linear)
-2. Model 2: Model 1 + characteristics of the living space (e.g. number of bathrooms, number of beds, room types) except amenities 
-3. Model 3: Model 2 + squared terms for numerical variables.
-4. Model 4: Model 3 + variables related to reviews (only those with correaltion less than 0.7 with each other)
+1. Model 1: number of people that can be accommodated, number of beds, number of bedrooms (enter linearly)
+2. Model 2: Model 1 + other characteristics of the living space except amenities 
+3. Model 3: Model 2 + squared terms of variables in model 1
+4. Model 4: Model 3 + variables related to reviews (only those with correlation less than 0.7 with each other)
 5. Model 5: Model 4 + information about rail transportation
 6. Model 6: Model 5 + information about the neighborhood
 7. Model 7: Model 6 + information about the host 
 8. Model 8: All variables
 
 
-Model 1: *price* = *f*(*accommodates*)
+Model 1: *price* = *f*(*accommodates*, *bedrooms*, *beds*, *bedrooms_imputed*)
 
-Model 2: *price* = model 1 + *bedrooms*, *beds*, *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*, *bedrooms_imputed*
+Model 2: *price* = model 1  + *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*
 
-Model 3: *price* = model 2 + $accommodates^2$, $bedrooms^2$, $beds^2$, $num_baths^2$, $num_shared_baths^2$, $num_private_baths^2$
+Model 3: *price* = model 2 + $accommodates^2$, $bedrooms^2$, $beds^2$
 
-Model 4: *price* = model 3 + *review_scores_rating*, *review_scores_cleanliness*, *review_scores_communication*, *review_scores_location*, *review_scores_rating_imputed*, *time_since_last_review*, *number_of_reviews*
+Model 4: *price* = model 4 + *review_scores_rating*, *review_scores_cleanliness*, *review_scores_communication*, *review_scores_location*, *review_scores_rating_imputed*, *time_since_last_review*, *number_of_reviews*
 
-Model 5: *price* = model 4 + *near_MRT*, *near_BTS*, *near_ARL*
+Model 5: *price* = model 5 + *near_MRT*, *near_BTS*, *near_ARL*
 
-Model 6: *price* = model 5 + *neighborhood*
+Model 6: *price* = model 6 + *neighborhood*
 
-Model 7: *price* = model 6 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
+Model 7: *price* = model 7 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
 
 Model 8: *price* = *f*(all variables)
 
@@ -575,7 +575,7 @@ kable(cor_main[1,], align = "c") %>%
 ```{r}
 
 #### Selecting by using 5-fold cross validation
-set.seed(20231130)
+set.seed(20231127)
 # Getting the indices for 5-fold cross validation
 folds <- createFolds(Data_Mar$price, k = 5, list = TRUE, returnTrain = TRUE)
 
@@ -589,7 +589,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_1 <- lm(price ~ accommodates, data = train)
+  model_OLS_1 <- lm(price ~ accommodates + bedrooms + beds + bedrooms_imputed, data = train)
   
   
   # Predict the test data
@@ -605,6 +605,7 @@ for (i in 1:5) {
 # Calculate the average RMSE
 RMSE_OLS_1 <- sqrt(mean(unlist(results)^2))
 
+
 ## Model 2
 results <- list()
 
@@ -614,7 +615,7 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_2 <- update(model_OLS_1, . ~ . + bedrooms + beds + num_baths + num_shared_baths + is_half_bath + num_private_baths + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room` + bedrooms_imputed, data = train)
+  model_OLS_2 <- update(model_OLS_1, . ~ . + num_baths + num_shared_baths + is_half_bath + num_private_baths + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room`, data = train)
   
   
   # Predict the test data
@@ -630,7 +631,6 @@ for (i in 1:5) {
 # Calculate the average RMSE
 RMSE_OLS_2 <- sqrt(mean(unlist(results)^2))
 
-
 ## Model 3
 results <- list()
 
@@ -640,7 +640,8 @@ for (i in 1:5) {
   test <- Data_Mar[-folds[[i]], ]
   
   # Estimate the model
-  model_OLS_3 <- update(model_OLS_2, . ~ . + accommodates^2 + bedrooms^2 + beds^2 + num_baths^2 + num_shared_baths^2 +  num_private_baths^2 , data = train)
+  model_OLS_3 <- update(model_OLS_2, . ~ . +  I(accommodates^2) + I(bedrooms^2) + I(beds^2), data = train)
+
   
   # Predict the test data
   test$pred <- predict(model_OLS_3, newdata = test)
@@ -786,21 +787,21 @@ RMSE_OLS_8 <- sqrt(mean(unlist(results)^2))
 ```{r}
 ## Put the results in a data frame
 results <- data.frame(
-  Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6", "OLS_7", "OLS_7"),
-  RMSE = c(RMSE_OLS_1, RMSE_OLS_2, RMSE_OLS_3, RMSE_OLS_4, RMSE_OLS_5, RMSE_OLS_6, RMSE_OLS_7, RMSE_OLS_8)
-)
+  Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6", "OLS_7", "OLS_8"),
+  RMSE = c(RMSE_OLS_1, RMSE_OLS_2, RMSE_OLS_3, RMSE_OLS_4, RMSE_OLS_5, RMSE_OLS_6, RMSE_OLS_7, RMSE_OLS_8))
 
 # Print the table with borders
 kable(results, digits = 2, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 ```
 
-Model 2 and Model 3 have the lowest RMSE. I will choose Model 2 as the final model because it has the lowest number of variables.
+Model 2 has the lowest RMSE. I will use this model for the prediction.
+
 
 ```{r}
 ## Re-esimate the model with the optimal set of variables (Model 2)
 
-model_OLS_optm <- update(model_OLS_2, . ~ . + near_MRT + near_BTS + near_ARL, data = Data_Mar)
+model_OLS_optm <- update(model_OLS_1, . ~ . + num_baths + num_shared_baths + is_half_bath + num_private_baths + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room`, data = Data_Mar)
 
 ```
 
@@ -823,7 +824,7 @@ grid <- expand.grid(mtry = mtry)
 control <- trainControl(method = "cv", number = 5)
 
 # tuning the model
-set.seed(20231130)
+set.seed(20231128)
 
 # I set ntree = 200 for the sake of computation time.
 model_RF <- train(price ~ ., data = Data_Mar, method = "rf", trControl = control, tuneGrid = grid, ntree = 200)
@@ -836,7 +837,7 @@ model_RF
 
 ```{r}
 ## Re-estimate the model with the optimal paremeters (mtry = model_RF$bestTune$mtry)
-set.seed(20231130)
+set.seed(20231127)
 
 predictors = subset(Data_Mar, select = -c(price))
 model_RF_optm <- randomForest(x = predictors, y = Data_Mar$price, ntree = 200, mtry = model_RF$bestTune$mtry)
@@ -854,7 +855,7 @@ model_RF_optm <- randomForest(x = predictors, y = Data_Mar$price, ntree = 200, m
 minsplit_range <- c(2, 4, 6, 8, 10)
 
 # Selecting by using 5-fold cross validation
-set.seed(20231130)
+set.seed(20231127)
 # Getting the indices for 5-fold cross validation
 folds <- createFolds(Data_Mar$price, k = 5, list = TRUE, returnTrain = TRUE)
 
@@ -909,7 +910,7 @@ The optimal stopping rule chosen by CV is minsplit = 6, since it is the model wi
 ## Determine the optimal stopping rule
 minsplit_optm <- results[which.min(results$RMSE), "minsplit"]
 
-set.seed(20231130)
+set.seed(20231127)
 model_bagging_optm <- bagging(price ~ ., data = Data_Mar, nbagg = 200, control = rpart.control(minsplit = minsplit_optm))
 ```
 
@@ -1119,7 +1120,7 @@ kable(head(NA_hold_out, 5))
 ### RMSE Results
 
 ```{r}
-## Use OLS model 3 to predict the price and calculate the RMSE in the holdout set.
+## Use OLS model 1 to predict the price and calculate the RMSE in the holdout set.
 
 # Use OLS
 
