@@ -177,13 +177,13 @@ The RMSE of the models on the test set are present in @tbl-OSL-RMSE. The best mo
 
 ### Random Forest
 
-Next, I build a random forest model. 5-fold cross-validation is used to tune the parameters (*mtry*: Number of variables randomly sampled as candidates at each split). To save computation time, I only use 200 trees.
+Next, I build a random forest model. 5-fold cross-validation is used to tune the parameters (*mtry*: Number of variables randomly sampled as candidates at each split). The values of *mtry* considered are all integers from 20 to 40. To save computation time, I only use 200 trees.
 
 *mtry* = 20 produces the lowest RMSE.
 
 ### Bagging
 
-I build a bagging model with 200 trees. 5-fold cross-validation is used to tune the parameters (*minsplit*: Number of minimum observations in the terminal nodes).
+I build a bagging model with 200 trees. 5-fold cross-validation is used to tune the parameters (*minsplit*: Number of minimum observations in the terminal nodes). The values of *minsplit* considered are 2, 4, 6, 8, 10.
 
 The optimal *minsplit* is 6.
 
