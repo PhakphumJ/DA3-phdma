@@ -1,15 +1,3 @@
----
-title: "Assignment 2 - AirBnB"
-author: "Phakphum Jatupitpornchan"
-format: html
-execute: 
-  echo: false
-  warning: false
-editor: visual
----
-
-```{r}
-
 rm(list=ls())
 
 library(readr)
@@ -33,23 +21,10 @@ library(shapviz)
 setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction with Machine Learning/Assignment/DA3-phdma/Assignment 2")
 
 Data_Mar <- read_csv("listings_mar_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
-```
 
-# Task 1
-## Defining Live Data and Sample
+##### Task 1
+### Defining Live Data and Sample
 
-Live data: Observations with *property_type*%in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment") & *accommodates* \>= 2 & *accommodates* \<= 6
-
-Sample: Observations with *property_type* %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo") & *accommodates* \>= 2 & *accommodates* \<= 6.
-
-The definition of sample here (apartments and condos) is wider than the definition of target observations (apartments) to increase the sample size.
-
-I split the sample into 2 main parts.
-
-1.  Hold-out set: 20% of apartments randomly selected to be in the hold-out set. I only use apartments because the results on performance in this case would then be closer to the results from actual live data which only contains apartments.
-2.  Work set: The remaining sample is the work set. It is split further to be training set and test set.
-
-```{r}
 ### Filtering data
 Data_Mar = Data_Mar %>% 
   filter(property_type %in% c("Entire serviced apartment", "Private room in serviced apartment", "Room in serviced apartment", "Shared room in serviced apartment", "Entire home/apt", "Entire condo", "Private room in condo", "Shared room in condo"), accommodates >= 2, accommodates <= 6)
@@ -73,12 +48,6 @@ hold_out_Mar <- hold_out_Mar %>%
 Data_Mar <- Data_Mar %>%
   select(-id)
 
-```
-
-## Label Engineering
-
-
-```{r}
 ### Converting the price to numeric 
 Data_Mar$price <- gsub("\\$", "", Data_Mar$price)
 Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
@@ -86,145 +55,12 @@ Data_Mar$price <- as.numeric(gsub(",", "", Data_Mar$price))
 hold_out_Mar$price <- gsub("\\$", "", hold_out_Mar$price)
 hold_out_Mar$price <- as.numeric(gsub(",", "", hold_out_Mar$price))
 
-```
 
-
-
-## Feature Engineering
-
-### Picking features
-
--   Information about host
-
-    -   Host response time (*host_response_time*)
-
-    -   Host response rate (*host_response_rate*)
-
-    -   Host acceptance rate (*host_acceptance_rate*)
-
-    -   Is superhost (*host_is_superhost*)
-
-    -   Total listings (*host_total_listings_count*)
-
-    -   Has identity identified (*host_identity_verified*)
-
--   Information about the accomodation
-
-    -   Neighbourhood (*neighbourhood_cleansed*)
-
-    -   Types of property (*property_type*)
-
-    -   Types of room (*room_type*)
-
-    -   Number of people that can be accommodated (*accommodates*)
-
-    -   Types and number of bathrooms (*bathrooms_text*)
-
-    -   Number of bedrooms (*bedrooms*)
-
-    -   Number of beds (*beds*)
-
-    -   Amenities (*amenities*)
-
-    -   Minimum number of night stay for the listing (*minimum_nights*)
-
-    -   Maximum number of night stay for the listing (*maximum_nights*)
-
-    -   Is availability (*has_availability*)
-
-    -   The availability of the listing 30 days in the future as determined by the calendar (*availability_30*)
-
-    -   The availability of the listing 60 days in the future as determined by the calendar (*availability_60*)
-
-    -   The availability of the listing 90 days in the future as determined by the calendar (*availability_90*)
-
-    -   The availability of the listing 365 days in the future as determined by the calendar (*availability_365*)
-
-    -   The number of reviews the listing has (*number_of_reviews*)
-
-    -   The number of reviews the listing has (in the last 12 months) (*number_of_reviews_ltm*)
-    
-    -   The date and time this listing was "scraped". (*last_scraped*)
-
-    -   The date of the last/newest review (*last_review*)
-
-    -   Overall review rating (review_scores_rating)
-
-    -   Average accuracy review rating (*review_scores_accuracy*)
-
-    -   Average cleanliness review rating (*review_scores_cleanliness*)
-
-    -   Average check-in review rating (*review_scores_checkin*)
-
-    -   Average communication review rating (*review_scores_communication*)
-
-    -   Average location review rating (*review_scores_location*)
-
-    -   Average value review rating (*review_scores_value*)
-
-    -   Whether the guest can automatically book the listing without the host requiring to accept their booking request. (*instant_bookable*)
-
-    -   Description of the accommodation (*description*)
-
-    -   Description of the neighborhood (*neighborhood_overview*)
-
-        -   BTS, bts, Skytrain, skytrain, MRT, mrt, Metro, metro, Subway, subway, Airport Rail Link, Airport Link, airport rail link, airport link, ARL, arl
-
--   Only use the most relevant amenities, otherwise takes too long.
-
-    -   Hair dryer
-
-    -   Shampoo
-
-    -   Shower gel
-
-    -   Air conditioning
-
-    -   Essentials
-
-    -   Wifi
-
-    -   Washer
-
-    -   Iron
-
-    -   Smoking allowed
-
-    -   Free parking on premises
-
-    -   Luggage dropoff allowed
-
-    -   Kitchen
-
-    -   Refrigerator
-
-    -   Dining table
-
-    -   Dedicated workspace
-
-    -   Elevator
-
-    -   Microwave
-
-    -   Dishes and silverware
-
-    -   TV
-
-    -   Pool
-
-    -   Gym
-
-    -   Pets allowed
-
-```{r}
-
+### Feature Engineering
 ### Keeping only variables that we are going to use.
 Data_Mar = Data_Mar %>% 
   select(price, host_response_time, host_response_rate, host_acceptance_rate, host_is_superhost, host_total_listings_count, host_identity_verified, neighbourhood_cleansed, property_type, room_type, accommodates, bathrooms_text, bedrooms, beds, amenities, minimum_nights, maximum_nights, has_availability, availability_30, availability_60, availability_90, availability_365, number_of_reviews, last_review, last_scraped,review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, instant_bookable, description, neighborhood_overview)
-```
 
-
-```{r}
 
 ## Converting host_response_rate to numeric
 Data_Mar$host_response_rate <- gsub("\\%", "", Data_Mar$host_response_rate)
@@ -236,10 +72,6 @@ Data_Mar$host_acceptance_rate <- gsub("\\%", "", Data_Mar$host_acceptance_rate)
 
 Data_Mar$host_acceptance_rate <- as.numeric(gsub(",", "", Data_Mar$host_acceptance_rate))
 
-```
-
-```{r}
-# | output: false
 ## Let's tranform bathrooms_text.
 Data_Mar %>% 
   count(bathrooms_text)
@@ -247,9 +79,7 @@ Data_Mar %>%
 ## It seems that we have 3 main categories
 # 1. baths 2. shared baths 3.private baths 4. Half-bath
 # Recode it in terms of number of baths (each category)
-```
 
-```{r}
 
 ### Extracting number and types of bathrooms
 ## Start with March
@@ -293,11 +123,6 @@ Data_Mar$is_half_bath[is.na(Data_Mar$bathrooms_text)] <- NA
 # Drop the original 'bathrooms_text' column
 Data_Mar <- subset(Data_Mar, select = -bathrooms_text)
 
-
-```
-
-```{r}
-
 ### Extracting amenities into dummy variables
 # List of amenities
 amenities_list <- c("Hair dryer", "Shampoo", "Shower gel", "Air conditioning", "Essentials", 
@@ -316,11 +141,6 @@ for (amenity in amenities_list) {
 # Drop the original 'amenities' column
 Data_Mar <- subset(Data_Mar, select = -amenities)
 
-
-```
-
-
-```{r}
 
 ### Encoding other variables into dummy variables
 ## host_response_time
@@ -342,9 +162,6 @@ Data_Mar = dummy_cols(Data_Mar, select_columns = "property_type", remove_first_d
 Data_Mar = dummy_cols(Data_Mar, select_columns = "room_type", remove_first_dummy = TRUE, remove_selected_columns = TRUE)
 
 
-```
-
-```{r}
 
 ### Creating variable called "time_since_last_review"
 # Convert data to date first
@@ -364,9 +181,7 @@ Data_Mar = Data_Mar %>%
   select(-c(last_review, last_scraped))
 
 
-```
 
-```{r}
 ### Extracting Information about Skytrain, Metro
 ## MRT (Subway)
 
@@ -377,8 +192,8 @@ MRT_keywords <- c("\\bMRT\\b", "\\bmrt\\b", "\\bMetro\\b", "\\bmetro\\b", "\\bSu
 Data_Mar$near_MRT <- ifelse(
   grepl(paste(MRT_keywords, collapse = "|"), 
         Data_Mar$description, ignore.case = TRUE) |
-  grepl(paste(MRT_keywords, collapse = "|"), 
-        Data_Mar$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(MRT_keywords, collapse = "|"), 
+          Data_Mar$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
@@ -388,8 +203,8 @@ BTS_keywords <- c("\\bBTS\\b", "\\bbts\\b", "\\bSkytrain\\b", "\\bskytrain\\b")
 Data_Mar$near_BTS <- ifelse(
   grepl(paste(BTS_keywords, collapse = "|"), 
         Data_Mar$description, ignore.case = TRUE) |
-  grepl(paste(BTS_keywords, collapse = "|"), 
-        Data_Mar$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(BTS_keywords, collapse = "|"), 
+          Data_Mar$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
@@ -400,8 +215,8 @@ ARL_keywords <- c("\\bAirport Rail Link\\b", "\\bAirport Link\\b", "\\bairport r
 Data_Mar$near_ARL <- ifelse(
   grepl(paste(ARL_keywords, collapse = "|"), 
         Data_Mar$description, ignore.case = TRUE) |
-  grepl(paste(ARL_keywords, collapse = "|"), 
-        Data_Mar$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(ARL_keywords, collapse = "|"), 
+          Data_Mar$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
@@ -421,12 +236,7 @@ Data_Mar = Data_Mar %>%
   select(-c(description, neighborhood_overview))
 
 
-```
-
-
 ### Dealing with NAs
-
-```{r}
 ## Examining NA values
 
 NA_Mar <- Data_Mar %>%
@@ -435,24 +245,7 @@ NA_Mar <- Data_Mar %>%
   arrange(desc(na_count)) 
 
 kable(head(NA_Mar, 20))
-```
 
-
--   For scores, replace it with the mean and add binary flag variable to capture this.
-
--   For *time_since_last_review*, replace it with max(time_since_last_review). These are accommodations with no review yet. Prospect customers may see these place similar to those which did not get any review for a long time.
-
--   Those with *host_acceptance_rate* and *host_response_rate* = NA are likely to be newcomers. We will drop these.
-
--   For *near_MRT*, *near_BTS*, and *near_ARL*, replace NA with 0.
-
--   For *host_is_superhost*, replace NA with 0.
-
--   For *bedrooms* and *beds*, replace NA with the mean and add binary flag variable to capture this.
-
--   Those with missing values for the number of bathrooms can be dropped since there are only a few of them.
-
-```{r}
 ## Drop those with missing values for host_acceptance_rate and host_response_rate
 
 Data_Mar <- Data_Mar %>%
@@ -463,10 +256,6 @@ Data_Mar <- Data_Mar %>%
 Data_Mar <- Data_Mar %>%
   filter(!is.na(num_baths) & !is.na(num_shared_baths) & !is.na(is_half_bath) & !is.na(num_private_baths))
 
-
-```
-
-```{r}
 ## Replace NA values in near_MRT, near_BTS, and near_ARL with 0
 
 Data_Mar <- Data_Mar %>%
@@ -478,17 +267,10 @@ Data_Mar <- Data_Mar %>%
 Data_Mar <- Data_Mar %>%
   mutate(host_is_superhost = ifelse(is.na(host_is_superhost), 0, host_is_superhost))
 
-
-```
-
-```{r}
 ## Replace NA values in time_since_last_review with max
 Data_Mar <- Data_Mar %>%
   mutate(time_since_last_review = ifelse(is.na(time_since_last_review), max(time_since_last_review, na.rm = TRUE), time_since_last_review))
 
-```
-
-```{r}
 ## Replace NA values in scores with mean
 Data_Mar <- Data_Mar %>%
   mutate(across(c(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
@@ -508,61 +290,14 @@ Data_Mar <- Data_Mar %>%
   mutate(bedrooms_imputed = ifelse(is.na(bedrooms), 1, 0))
 
 
+### Building Models
+## Linear Regression
 
-```
-
-## Building Models
-
-I consider three main types of models: linear regression, random forest, and bagging. Linear regression is simple and offers high interpretability, random forest offers high-quality prediction. Bagging is chosen to demonstrate the gain from decorrelating the trees.
-
-The details of each model will be discussed in the following sections.
-
-
-### Linear Regression
-
-8 linear regression models are considered. The one that with the lowest RMSE on the test set is chosen to be with random forest and bagging models.
-
-The eight models are: 
-
-1. Model 1: number of people that can be accommodated, number of beds, number of bedrooms (enter linearly)
-2. Model 2: Model 1 + other characteristics of the living space except amenities 
-3. Model 3: Model 2 + information about rail transportation
-4. Model 4: Model 3 + variables related to reviews (only those with correlation less than 0.7 with each other)
-5. Model 5: Model 4 + squared terms of variables in model 1
-6. Model 6: Model 5 + information about the neighborhood
-7. Model 7: Model 6 + information about the host 
-8. Model 8: All variables
-
-
-Model 1: *price* = *f*(*accommodates*, *bedrooms*, *beds*, *bedrooms_imputed*)
-
-Model 2: *price* = model 1  + *property_type*, *room_type*, *num_baths*, *num_shared_baths*, *is_half_bath*, *num_private_baths*
-
-Model 3: *price* = model 2 + *near_MRT*, *near_BTS*, *near_ARL*
-
-Model 4: *price* = model 4 + *review_scores_rating*, *review_scores_cleanliness*, *review_scores_communication*, *review_scores_location*, *review_scores_rating_imputed*, *time_since_last_review*, *number_of_reviews*
-
-Model 5: *price* = model 4 + $accommodates^2$, $bedrooms^2$, $beds^2$
-
-Model 6: *price* = model 6 + *neighborhood*
-
-Model 7: *price* = model 7 + *host_is_superhost*, *host_response_time*, *host_response_rate*, *host_acceptance_rate*, *host_total_listings_count*, *host_identity_verified*
-
-Model 8: *price* = *f*(all variables)
-
-#### Selecting the best OLS model
-
-```{r}
-#| output: false
-#| echo: true
 selected_variables <- c("review_scores_rating", "review_scores_accuracy", "review_scores_cleanliness", "review_scores_checkin", "review_scores_communication", "review_scores_location", "review_scores_value")
 
 # Compute the correlation matrix for selected variables
 cor(Data_Mar[, selected_variables], use = "complete.obs")
 
-```
-
-```{r}
 ## Compute the correlation between price and the important predictors.
 
 # Compute the correlation matrix for selected variables
@@ -572,12 +307,8 @@ cor_main <- cor(Data_Mar[, c("price", "accommodates", "bedrooms", "beds", "num_b
 kable(cor_main[1,], align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 
-```
 
-
-```{r}
-
-#### Selecting by using 5-fold cross validation
+### Selecting by using 5-fold cross validation
 set.seed(20231127)
 # Getting the indices for 5-fold cross validation
 folds <- createFolds(Data_Mar$price, k = 5, list = TRUE, returnTrain = TRUE)
@@ -604,7 +335,7 @@ for (i in 1:5) {
   # Store the results
   results[[i]] <- rmse
 }
- 
+
 # Calculate the average RMSE
 RMSE_OLS_1 <- sqrt(mean(unlist(results)^2))
 
@@ -696,7 +427,7 @@ for (i in 1:5) {
   
   # Estimate the model
   model_OLS_5 <- update(model_OLS_4, . ~ . +  I(accommodates^2) + I(bedrooms^2) + I(beds^2), data = train)
-
+  
   
   # Predict the test data
   test$pred <- predict(model_OLS_5, newdata = test)
@@ -786,9 +517,7 @@ for (i in 1:5) {
 # Calculate the average RMSE
 RMSE_OLS_8 <- sqrt(mean(unlist(results)^2))
 
-```
 
-```{r}
 ## Put the results in a data frame
 results <- data.frame(
   Model = c("OLS_1", "OLS_2", "OLS_3", "OLS_4", "OLS_5", "OLS_6", "OLS_7", "OLS_8"),
@@ -797,25 +526,14 @@ results <- data.frame(
 # Print the table with borders
 kable(results, digits = 2, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-```
-
-Model 2 has the lowest RMSE. I will use this model for the prediction.
 
 
-```{r}
 ## Re-esimate the model with the optimal set of variables (Model 2)
 
 model_OLS_optm <- update(model_OLS_1, . ~ . + num_baths + num_shared_baths + is_half_bath + num_private_baths + `property_type_Entire home/apt` + `property_type_Entire serviced apartment` + `property_type_Private room in condo` + `property_type_Private room in serviced apartment` + `property_type_Room in serviced apartment` + `property_type_Shared room in serviced apartment` + `property_type_Shared room in condo` + `room_type_Hotel room` + `room_type_Private room` + `room_type_Shared room`, data = Data_Mar)
 
-```
 
-
-### Random Forest Model
-
-Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (*mtry*: Number of variables randomly sampled as candidates at each split)
-
-
-```{r}
+## Random Forest Model
 ## Setting up the random forest
 # specifying the range of values for the tuning parameters
 
@@ -832,27 +550,17 @@ set.seed(20231128)
 
 # I set ntree = 200 for the sake of computation time.
 model_RF <- train(price ~ ., data = Data_Mar, method = "rf", trControl = control, tuneGrid = grid, ntree = 200)
-```
 
-```{r}
 ## Display the results of Random Forest.
 model_RF
-```
 
-```{r}
 ## Re-estimate the model with the optimal paremeters (mtry = model_RF$bestTune$mtry)
 set.seed(20231127)
 
 predictors = subset(Data_Mar, select = -c(price))
 model_RF_optm <- randomForest(x = predictors, y = Data_Mar$price, ntree = 200, mtry = model_RF$bestTune$mtry)
 
-```
-
-
-
 ### Bagging Model
-
-```{r}
 ### Constructing the bagging model using ipred package. Choose the optimal stopping rule (minsplit) using 5-fold cross-validation.
 
 # Setting up the range of values for the tuning parameters
@@ -868,7 +576,7 @@ RMSE_Bagging <- c()
 
 for (parameter in 1:length(minsplit_range)) {
   results <- list()
-   for (i in 1:5) {
+  for (i in 1:5) {
     # Get the training and test data
     train <- Data_Mar[folds[[i]], ]
     test <- Data_Mar[-folds[[i]], ]
@@ -887,13 +595,11 @@ for (parameter in 1:length(minsplit_range)) {
     
     # average across the 5 folds
     avg_rmse <- sqrt(mean(unlist(results)^2))
-   }
+  }
   RMSE_Bagging[parameter] <- avg_rmse
 }
 
-```
 
-```{r}
 ## Combine the results into a data frame
 results <- data.frame(
   minsplit = minsplit_range,
@@ -903,12 +609,10 @@ results <- data.frame(
 # Print it with Kable
 kable(results, digits = 2, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-```
-
-The optimal stopping rule chosen by CV is minsplit = 6, since it is the model with the lowest RMSE.
 
 
-```{r}
+#The optimal stopping rule chosen by CV is minsplit = 6, since it is the model with the lowest RMSE.
+
 ## Re-estimate the model with the optimal stopping rule (minsplit = minsplit_optm)
 
 ## Determine the optimal stopping rule
@@ -916,12 +620,8 @@ minsplit_optm <- results[which.min(results$RMSE), "minsplit"]
 
 set.seed(20231127)
 model_bagging_optm <- bagging(price ~ ., data = Data_Mar, nbagg = 200, control = rpart.control(minsplit = minsplit_optm))
-```
 
-
-## Evaluating Performance
-
-```{r}
+### Evaluating Performance
 ### Cleaning the holdout data with the same process.
 # Keep the columns that are used in the model
 hold_out_Mar = hold_out_Mar %>% 
@@ -1022,24 +722,24 @@ hold_out_Mar = hold_out_Mar %>%
 hold_out_Mar$near_MRT <- ifelse(
   grepl(paste(MRT_keywords, collapse = "|"), 
         hold_out_Mar$description, ignore.case = TRUE) |
-  grepl(paste(MRT_keywords, collapse = "|"), 
-        hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(MRT_keywords, collapse = "|"), 
+          hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
 hold_out_Mar$near_BTS <- ifelse(
   grepl(paste(BTS_keywords, collapse = "|"), 
         hold_out_Mar$description, ignore.case = TRUE) |
-  grepl(paste(BTS_keywords, collapse = "|"), 
-        hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(BTS_keywords, collapse = "|"), 
+          hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
 hold_out_Mar$near_ARL <- ifelse(
   grepl(paste(ARL_keywords, collapse = "|"), 
         hold_out_Mar$description, ignore.case = TRUE) |
-  grepl(paste(ARL_keywords, collapse = "|"), 
-        hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(ARL_keywords, collapse = "|"), 
+          hold_out_Mar$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
@@ -1107,9 +807,8 @@ cols_to_add_holdout <- setdiff(colnames(Data_Mar), colnames(hold_out_Mar))
 
 ## Add the columns to the holdout set
 hold_out_Mar[cols_to_add_holdout] <- 0
-```
 
-```{r}
+
 ## Examining NA values again for the holdout set
 
 NA_hold_out <- hold_out_Mar %>%
@@ -1118,12 +817,9 @@ NA_hold_out <- hold_out_Mar %>%
   arrange(desc(na_count)) 
 
 kable(head(NA_hold_out, 5))
-```
 
 
-### RMSE Results
-
-```{r}
+## RMSE Results
 ## Use OLS model 2 to predict the price and calculate the RMSE in the holdout set.
 
 # Use OLS
@@ -1136,10 +832,16 @@ RMSE_OLS_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_ols)
 # Calculate the RMSE/Mean(Price)
 'RMSE_OLS/Mean(Price)' <- RMSE_OLS_Holdout/mean(hold_out_Mar$price)
 
-```
+## Use the chosen random forest model to predict the price and calculate the RMSE in the holdout set.
 
+hold_out_Mar$price_pred_RF <- predict(model_RF_optm, newdata = hold_out_Mar)
 
-```{r}
+# Calculate the RMSE
+RMSE_RF_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_RF)
+
+# Calculate the RMSE/Mean(Price)
+'RMSE_RF/Mean(Price)' <- RMSE_RF_Holdout/mean(hold_out_Mar$price)
+
 
 ## Use the chosen random forest model to predict the price and calculate the RMSE in the holdout set.
 
@@ -1151,10 +853,6 @@ RMSE_RF_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_RF)
 # Calculate the RMSE/Mean(Price)
 'RMSE_RF/Mean(Price)' <- RMSE_RF_Holdout/mean(hold_out_Mar$price)
 
-```
-
-
-```{r}
 
 ## Use the estimated bagging model with minsplit = 6 to predict the price and calculate the RMSE in the holdout set.
 
@@ -1167,9 +865,6 @@ RMSE_bagging_optm_Holdout <- RMSE(hold_out_Mar$price, hold_out_Mar$price_pred_ba
 'RMSE_Bagging/Mean(Price)' <- RMSE_bagging_optm_Holdout/mean(hold_out_Mar$price)
 
 
-```
-
-```{r}
 ## Compile the RMSE results and RMSE/Mean(Price) results for the holdout set
 
 RMSE_Holdout <- data.frame(RMSE_OLS_Holdout, RMSE_RF_Holdout, RMSE_bagging_optm_Holdout) %>%
@@ -1179,11 +874,8 @@ RMSE_Holdout <- data.frame(RMSE_OLS_Holdout, RMSE_RF_Holdout, RMSE_bagging_optm_
 # add column for RMSE/Mean(Price)
 RMSE_Holdout$'RMSE/Price' <- c(`RMSE_OLS/Mean(Price)`, `RMSE_RF/Mean(Price)`, `RMSE_Bagging/Mean(Price)`)
 
-```
 
-
-```{r}
-### Compare the performance across apartment size (small apartments: M= 3, large apartments > 3)
+## Compare the performance across apartment size (small apartments: M= 3, large apartments > 3)
 
 ## Calculate the Mean Price for small apartments and large apartments in the holdout set.
 
@@ -1212,10 +904,6 @@ RMSE_bag_small <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates <= 3) 
 
 RMSE_bag_large <- RMSE(as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price))$price, as.data.frame(hold_out_Mar %>% filter(accommodates > 3) %>% select(price_pred_bag))$price_pred_bag)
 
-```
-
-```{r}
-
 ## Divide the RMSE by the mean price for small apartments and large apartments respectively.
 
 # OLS
@@ -1233,10 +921,6 @@ RMSE_overprice_bag_small <- RMSE_bag_small/Mean_price_small
 
 RMSE_overprice_bag_large <- RMSE_bag_large/Mean_price_large
 
-```
-
-
-```{r}
 ## Compile the results (RMSE, RMSE/Mean(Price)) in a table. The rows are small and large apartments.
 
 ## RMSE
@@ -1281,9 +965,6 @@ Holdout_size <- cbind(RMSE_Holdout_size, RMSE_overprice_Holdout_size)
 colnames(Holdout_size) <- c("RMSE_OLS", "RMSE_RF", "RMSE_Bagging", "RMSE/Price_OLS", "RMSE/Price_RF", "RMSE/Price_Bagging")
 
 
-```
-
-```{r}
 ## Combine RMSE_Holdout and Holdout_size in a table.
 # Transform RMSE_Holdout to wide format.
 
@@ -1304,19 +985,15 @@ Holdout_All_results <- Holdout_All_results %>%
 # Make the mean price column to be numeric
 Holdout_All_results$Mean_price <- as.numeric(Holdout_All_results$Mean_price)
 
-```
-
-```{r}
 ## Print the results 
 # Use kable with kableExtra for better formatting
 kable(Holdout_All_results, digits = 2, align = "c") %>%
   kable_styling(latex_options = c("scale_down", "hold_position", "striped"))
 
-```
+
+
 ### Plotting the actual price vs predicted price.
 
-```{r}
-### Plotting the actual price vs predicted price.
 # Have 3 plots. One for each model.
 
 ## OLS
@@ -1331,9 +1008,6 @@ hold_out_Mar %>%
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 
-```
-
-```{r}
 ## Plot results from Random Forest 
 hold_out_Mar %>% 
   ggplot(aes(x = price, y = price_pred_RF)) +
@@ -1346,10 +1020,6 @@ hold_out_Mar %>%
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 
-```
-
-
-```{r}
 ## Plot results from Bagging
 
 hold_out_Mar %>% 
@@ -1362,11 +1032,8 @@ hold_out_Mar %>%
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
-```
 
-
-# Task 2
-```{r}
+###### Task 2
 ### The live data is data from September 2023. 
 ## Import the data
 Data_Sept <- read_csv("listings_sept_2023.csv", show_col_types = FALSE, na = c("", "NA", "N/A"))
@@ -1489,24 +1156,24 @@ Data_Sept = Data_Sept %>%
 Data_Sept$near_MRT <- ifelse(
   grepl(paste(MRT_keywords, collapse = "|"), 
         Data_Sept$description, ignore.case = TRUE) |
-  grepl(paste(MRT_keywords, collapse = "|"), 
-        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(MRT_keywords, collapse = "|"), 
+          Data_Sept$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
 Data_Sept$near_BTS <- ifelse(
   grepl(paste(BTS_keywords, collapse = "|"), 
         Data_Sept$description, ignore.case = TRUE) |
-  grepl(paste(BTS_keywords, collapse = "|"), 
-        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(BTS_keywords, collapse = "|"), 
+          Data_Sept$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
 Data_Sept$near_ARL <- ifelse(
   grepl(paste(ARL_keywords, collapse = "|"), 
         Data_Sept$description, ignore.case = TRUE) |
-  grepl(paste(ARL_keywords, collapse = "|"), 
-        Data_Sept$neighborhood_overview, ignore.case = TRUE),
+    grepl(paste(ARL_keywords, collapse = "|"), 
+          Data_Sept$neighborhood_overview, ignore.case = TRUE),
   1, 0
 )
 
@@ -1578,11 +1245,7 @@ Data_Sept[cols_to_add_live] <- 0
 
 
 
-```
 
-In task, I use the three model trained and selectected by using data from March 2023 to predict the price of apartments in September 2023 (live data). 
-
-```{r}
 ## Predict the price using OLS Model.
 Data_Sept$price_pred_ols <- predict(model_OLS_optm, newdata = Data_Sept)
 
@@ -1592,10 +1255,8 @@ Data_Sept$price_pred_RF <- predict(model_RF_optm, newdata = Data_Sept)
 ## Predict the price using Bagging Model.
 Data_Sept$price_pred_bag <- predict(model_bagging_optm, newdata = Data_Sept)
 
-```
 
-```{r}
-#### Repeat the same process of calculating and compiling RMSEs.
+### Repeat the same process of calculating and compiling RMSEs.
 
 ## Calculate the RMSE for OLS Model.
 RMSE_OLS_Live <- RMSE(Data_Sept$price, Data_Sept$price_pred_ols)
@@ -1740,17 +1401,14 @@ Live_All_results <- Live_All_results %>%
 # Make the mean price column to be numeric
 Live_All_results$Mean_price <- as.numeric(Live_All_results$Mean_price)
 
-```
-
-```{r}
 ## Print the results 
 # Use kable with kableExtra for better formatting
 kable(Live_All_results, digits = 2, align = "c") %>%
   kable_styling(latex_options = c("scale_down", "hold_position", "striped"))
 
-```
 
-```{r}
+
+
 ### Let's plot Yhat vs Y again
 
 ## OLS
@@ -1765,9 +1423,6 @@ Data_Sept %>%
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
 
-```
-
-```{r}
 ## Plot results from Random Forest 
 Data_Sept %>% 
   ggplot(aes(x = price, y = price_pred_RF)) +
@@ -1779,9 +1434,7 @@ Data_Sept %>%
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
-```
 
-```{r}
 ## Plot results from Bagging
 
 Data_Sept %>% 
@@ -1794,13 +1447,8 @@ Data_Sept %>%
   theme(plot.title = element_text(hjust = 0.5),  # Center the title
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, NA) + ylim(0, NA)  
-```
 
-It can be seen that there are extreme outliers in the price of the apartments in September. These may partly explain the significance increase in the RMSE of the models. Recall that the maximum price of apartments in March is only around 10,000 THB. 
 
-To get more insights on the performance, I exclude the outliers from the plot.
-
-```{r}
 ### Plot without outliers
 ## OLS
 Data_Sept %>%
@@ -1814,9 +1462,7 @@ Data_Sept %>%
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, 20000) + ylim(0, 20000)  
 
-```
 
-```{r}
 
 ## Plot results from Random Forest 
 Data_Sept %>% 
@@ -1830,9 +1476,7 @@ Data_Sept %>%
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, 20000) + ylim(0, 20000)  
 
-```
 
-```{r}
 
 ## Plot results from Bagging
 
@@ -1847,14 +1491,9 @@ Data_Sept %>%
         axis.text = element_text(size = 10),  # Adjust axis text size
         axis.title = element_text(size = 12, face = "bold")) + xlim(0, 20000) + ylim(0, 20000)  
 
-```
 
+###### Task 3
 
-# Task 3 Feature Contribution of the Random Forest Model
-
-In this section, SHAP values are used to explain the predictions of the Random Forest model in the holdout set. Specifically, SHAP (SHapley Additive exPlanations) is used. I use packages 'treeshap' and 'shapviz' to implement this task.
-
-```{r}
 ## Create a unified model object.
 # This is required for the shap functions to work.
 
@@ -1868,21 +1507,12 @@ treeshap_all <- treeshap(unified, data.matrix(hold_out_Mar[,-1]))
 shp_viz <- shapviz(treeshap_all, X = data.matrix(hold_out_Mar[,-1]))
 
 
-```
-
-
-```{r}
 ### Plotting the results.
 ## Bee swarm plot
 
 sv_importance(shp_viz, kind = "beeswarm")
 
 
-```
-
-```{r}
 ## Dependence plot b/w time since last review and review scores rating
 
 sv_dependence(shp_viz, "time_since_last_review", color_var = "review_scores_rating")
-
-```
