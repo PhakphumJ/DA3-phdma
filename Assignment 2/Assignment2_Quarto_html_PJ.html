@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Phakphum Jatupitpornchan">
+
+<title>Assignment 2 - AirBnB</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="Assignment2_Quarto_html_PJ_files/libs/clipboard/clipboard.min.js"></script>
+<script src="Assignment2_Quarto_html_PJ_files/libs/quarto-html/quarto.js"></script>
+<script src="Assignment2_Quarto_html_PJ_files/libs/quarto-html/popper.min.js"></script>
+<script src="Assignment2_Quarto_html_PJ_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="Assignment2_Quarto_html_PJ_files/libs/quarto-html/anchor.min.js"></script>
+<link href="Assignment2_Quarto_html_PJ_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="Assignment2_Quarto_html_PJ_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="Assignment2_Quarto_html_PJ_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="Assignment2_Quarto_html_PJ_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="Assignment2_Quarto_html_PJ_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+<script src="Assignment2_Quarto_html_PJ_files/libs/kePrint-0.0.1/kePrint.js"></script>
+<link href="Assignment2_Quarto_html_PJ_files/libs/lightable-0.0.1/lightable.css" rel="stylesheet">
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Assignment 2 - AirBnB</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Phakphum Jatupitpornchan </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="task-1" class="level1">
+<h1>Task 1</h1>
+<section id="defining-live-data-and-sample" class="level2">
+<h2 class="anchored" data-anchor-id="defining-live-data-and-sample">Defining Live Data and Sample</h2>
+<p>Live data: Observations with <em>property_type</em>%in% c(“Entire serviced apartment”, “Private room in serviced apartment”, “Room in serviced apartment”, “Shared room in serviced apartment”) &amp; <em>accommodates</em> &gt;= 2 &amp; <em>accommodates</em> &lt;= 6</p>
+<p>Sample: Observations with <em>property_type</em> %in% c(“Entire serviced apartment”, “Private room in serviced apartment”, “Room in serviced apartment”, “Shared room in serviced apartment”, “Entire home/apt”, “Entire condo”, “Private room in condo”, “Shared room in condo”) &amp; <em>accommodates</em> &gt;= 2 &amp; <em>accommodates</em> &lt;= 6.</p>
+<p>The definition of sample here (apartments and condos) is wider than the definition of target observations (apartments) to increase the sample size.</p>
+<p>I split the sample into 2 main parts.</p>
+<ol type="1">
+<li>Hold-out set: 20% of apartments randomly selected to be in the hold-out set. I only use apartments because the results on performance in this case would then be closer to the results from actual live data which only contains apartments.</li>
+<li>Work set: The remaining sample is the work set. It is split further to be training set and test set.</li>
+</ol>
+</section>
+<section id="label-engineering" class="level2">
+<h2 class="anchored" data-anchor-id="label-engineering">Label Engineering</h2>
+</section>
+<section id="feature-engineering" class="level2">
+<h2 class="anchored" data-anchor-id="feature-engineering">Feature Engineering</h2>
+<section id="picking-features" class="level3">
+<h3 class="anchored" data-anchor-id="picking-features">Picking features</h3>
+<ul>
+<li><p>Information about host</p>
+<ul>
+<li><p>Host response time (<em>host_response_time</em>)</p></li>
+<li><p>Host response rate (<em>host_response_rate</em>)</p></li>
+<li><p>Host acceptance rate (<em>host_acceptance_rate</em>)</p></li>
+<li><p>Is superhost (<em>host_is_superhost</em>)</p></li>
+<li><p>Total listings (<em>host_total_listings_count</em>)</p></li>
+<li><p>Has identity identified (<em>host_identity_verified</em>)</p></li>
+</ul></li>
+<li><p>Information about the accomodation</p>
+<ul>
+<li><p>Neighbourhood (<em>neighbourhood_cleansed</em>)</p></li>
+<li><p>Types of property (<em>property_type</em>)</p></li>
+<li><p>Types of room (<em>room_type</em>)</p></li>
+<li><p>Number of people that can be accommodated (<em>accommodates</em>)</p></li>
+<li><p>Types and number of bathrooms (<em>bathrooms_text</em>)</p></li>
+<li><p>Number of bedrooms (<em>bedrooms</em>)</p></li>
+<li><p>Number of beds (<em>beds</em>)</p></li>
+<li><p>Amenities (<em>amenities</em>)</p></li>
+<li><p>Minimum number of night stay for the listing (<em>minimum_nights</em>)</p></li>
+<li><p>Maximum number of night stay for the listing (<em>maximum_nights</em>)</p></li>
+<li><p>Is availability (<em>has_availability</em>)</p></li>
+<li><p>The availability of the listing 30 days in the future as determined by the calendar (<em>availability_30</em>)</p></li>
+<li><p>The availability of the listing 60 days in the future as determined by the calendar (<em>availability_60</em>)</p></li>
+<li><p>The availability of the listing 90 days in the future as determined by the calendar (<em>availability_90</em>)</p></li>
+<li><p>The availability of the listing 365 days in the future as determined by the calendar (<em>availability_365</em>)</p></li>
+<li><p>The number of reviews the listing has (<em>number_of_reviews</em>)</p></li>
+<li><p>The number of reviews the listing has (in the last 12 months) (<em>number_of_reviews_ltm</em>)</p></li>
+<li><p>The date and time this listing was “scraped”. (<em>last_scraped</em>)</p></li>
+<li><p>The date of the last/newest review (<em>last_review</em>)</p></li>
+<li><p>Overall review rating (review_scores_rating)</p></li>
+<li><p>Average accuracy review rating (<em>review_scores_accuracy</em>)</p></li>
+<li><p>Average cleanliness review rating (<em>review_scores_cleanliness</em>)</p></li>
+<li><p>Average check-in review rating (<em>review_scores_checkin</em>)</p></li>
+<li><p>Average communication review rating (<em>review_scores_communication</em>)</p></li>
+<li><p>Average location review rating (<em>review_scores_location</em>)</p></li>
+<li><p>Average value review rating (<em>review_scores_value</em>)</p></li>
+<li><p>Whether the guest can automatically book the listing without the host requiring to accept their booking request. (<em>instant_bookable</em>)</p></li>
+<li><p>Description of the accommodation (<em>description</em>)</p></li>
+<li><p>Description of the neighborhood (<em>neighborhood_overview</em>)</p>
+<ul>
+<li>BTS, bts, Skytrain, skytrain, MRT, mrt, Metro, metro, Subway, subway, Airport Rail Link, Airport Link, airport rail link, airport link, ARL, arl</li>
+</ul></li>
+</ul></li>
+<li><p>Only use the most relevant amenities, otherwise takes too long.</p>
+<ul>
+<li><p>Hair dryer</p></li>
+<li><p>Shampoo</p></li>
+<li><p>Shower gel</p></li>
+<li><p>Air conditioning</p></li>
+<li><p>Essentials</p></li>
+<li><p>Wifi</p></li>
+<li><p>Washer</p></li>
+<li><p>Iron</p></li>
+<li><p>Smoking allowed</p></li>
+<li><p>Free parking on premises</p></li>
+<li><p>Luggage dropoff allowed</p></li>
+<li><p>Kitchen</p></li>
+<li><p>Refrigerator</p></li>
+<li><p>Dining table</p></li>
+<li><p>Dedicated workspace</p></li>
+<li><p>Elevator</p></li>
+<li><p>Microwave</p></li>
+<li><p>Dishes and silverware</p></li>
+<li><p>TV</p></li>
+<li><p>Pool</p></li>
+<li><p>Gym</p></li>
+<li><p>Pets allowed</p></li>
+</ul></li>
+</ul>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 21 × 2
+   bathrooms_text       n
+   &lt;chr&gt;            &lt;int&gt;
+ 1 0 baths              3
+ 2 1 bath            3073
+ 3 1 private bath     696
+ 4 1 shared bath       74
+ 5 1.5 baths          459
+ 6 1.5 shared baths    34
+ 7 2 baths            572
+ 8 2 shared baths       5
+ 9 2.5 baths           61
+10 2.5 shared baths     4
+# ℹ 11 more rows</code></pre>
+</div>
+</div>
+</section>
+<section id="dealing-with-nas" class="level3">
+<h3 class="anchored" data-anchor-id="dealing-with-nas">Dealing with NAs</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">column</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">na_count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">review_scores_location</td>
+<td style="text-align: right;">1465</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">review_scores_value</td>
+<td style="text-align: right;">1465</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">review_scores_checkin</td>
+<td style="text-align: right;">1464</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">review_scores_communication</td>
+<td style="text-align: right;">1463</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">review_scores_accuracy</td>
+<td style="text-align: right;">1462</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">review_scores_cleanliness</td>
+<td style="text-align: right;">1462</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">review_scores_rating</td>
+<td style="text-align: right;">1411</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">time_since_last_review</td>
+<td style="text-align: right;">1411</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">host_acceptance_rate</td>
+<td style="text-align: right;">1006</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">host_response_rate</td>
+<td style="text-align: right;">872</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">host_response_time_within a day</td>
+<td style="text-align: right;">872</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">host_response_time_within a few hours</td>
+<td style="text-align: right;">872</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">host_response_time_within an hour</td>
+<td style="text-align: right;">872</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bedrooms</td>
+<td style="text-align: right;">362</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">near_MRT</td>
+<td style="text-align: right;">199</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">near_BTS</td>
+<td style="text-align: right;">199</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">near_ARL</td>
+<td style="text-align: right;">199</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">beds</td>
+<td style="text-align: right;">132</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">num_baths</td>
+<td style="text-align: right;">18</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">num_shared_baths</td>
+<td style="text-align: right;">12</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<ul>
+<li><p>For scores, replace it with the mean and add binary flag variable to capture this.</p></li>
+<li><p>For <em>time_since_last_review</em>, replace it with max(time_since_last_review). These are accommodations with no review yet. Prospect customers may see these place similar to those which did not get any review for a long time.</p></li>
+<li><p>Those with <em>host_acceptance_rate</em> and <em>host_response_rate</em> = NA are likely to be newcomers. We will drop these.</p></li>
+<li><p>For <em>near_MRT</em>, <em>near_BTS</em>, and <em>near_ARL</em>, replace NA with 0.</p></li>
+<li><p>For <em>host_is_superhost</em>, replace NA with 0.</p></li>
+<li><p>For <em>bedrooms</em> and <em>beds</em>, replace NA with the mean and add binary flag variable to capture this.</p></li>
+<li><p>Those with missing values for the number of bathrooms can be dropped since there are only a few of them.</p></li>
+</ul>
+</section>
+</section>
+<section id="building-models" class="level2">
+<h2 class="anchored" data-anchor-id="building-models">Building Models</h2>
+<p>I consider three main types of models: linear regression, random forest, and bagging. Linear regression is simple and offers high interpretability, random forest offers high-quality prediction. Bagging is chosen to demonstrate the gain from decorrelating the trees.</p>
+<p>The details of each model will be discussed in the following sections.</p>
+<section id="linear-regression" class="level3">
+<h3 class="anchored" data-anchor-id="linear-regression">Linear Regression</h3>
+<p>8 linear regression models are considered. The one that with the lowest RMSE on the test set is chosen to be with random forest and bagging models.</p>
+<p>The eight models are:</p>
+<ol type="1">
+<li>Model 1: number of people that can be accommodated, number of beds, number of bedrooms (enter linearly)</li>
+<li>Model 2: Model 1 + other characteristics of the living space except amenities</li>
+<li>Model 3: Model 2 + information about rail transportation</li>
+<li>Model 4: Model 3 + variables related to reviews (only those with correlation less than 0.7 with each other)</li>
+<li>Model 5: Model 4 + squared terms of variables in model 1</li>
+<li>Model 6: Model 5 + information about the neighborhood</li>
+<li>Model 7: Model 6 + information about the host</li>
+<li>Model 8: All variables</li>
+</ol>
+<p>Model 1: <em>price</em> = <em>f</em>(<em>accommodates</em>, <em>bedrooms</em>, <em>beds</em>, <em>bedrooms_imputed</em>)</p>
+<p>Model 2: <em>price</em> = model 1 + <em>property_type</em>, <em>room_type</em>, <em>num_baths</em>, <em>num_shared_baths</em>, <em>is_half_bath</em>, <em>num_private_baths</em></p>
+<p>Model 3: <em>price</em> = model 2 + <em>near_MRT</em>, <em>near_BTS</em>, <em>near_ARL</em></p>
+<p>Model 4: <em>price</em> = model 4 + <em>review_scores_rating</em>, <em>review_scores_cleanliness</em>, <em>review_scores_communication</em>, <em>review_scores_location</em>, <em>review_scores_rating_imputed</em>, <em>time_since_last_review</em>, <em>number_of_reviews</em></p>
+<p>Model 5: <em>price</em> = model 4 + <span class="math inline">\(accommodates^2\)</span>, <span class="math inline">\(bedrooms^2\)</span>, <span class="math inline">\(beds^2\)</span></p>
+<p>Model 6: <em>price</em> = model 6 + <em>neighborhood</em></p>
+<p>Model 7: <em>price</em> = model 7 + <em>host_is_superhost</em>, <em>host_response_time</em>, <em>host_response_rate</em>, <em>host_acceptance_rate</em>, <em>host_total_listings_count</em>, <em>host_identity_verified</em></p>
+<p>Model 8: <em>price</em> = <em>f</em>(all variables)</p>
+<section id="selecting-the-best-ols-model" class="level4">
+<h4 class="anchored" data-anchor-id="selecting-the-best-ols-model">Selecting the best OLS model</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>selected_variables <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"review_scores_rating"</span>, <span class="st">"review_scores_accuracy"</span>, <span class="st">"review_scores_cleanliness"</span>, <span class="st">"review_scores_checkin"</span>, <span class="st">"review_scores_communication"</span>, <span class="st">"review_scores_location"</span>, <span class="st">"review_scores_value"</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Compute the correlation matrix for selected variables</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">cor</span>(Data_Mar[, selected_variables], <span class="at">use =</span> <span class="st">"complete.obs"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-striped table-hover table-condensed table-bordered table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">x</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">price</td>
+<td style="text-align: center;">1.0000000</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">accommodates</td>
+<td style="text-align: center;">0.0772397</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bedrooms</td>
+<td style="text-align: center;">0.0661776</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">beds</td>
+<td style="text-align: center;">0.0523869</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">num_baths</td>
+<td style="text-align: center;">0.0247378</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">num_shared_baths</td>
+<td style="text-align: center;">-0.0074750</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">num_private_baths</td>
+<td style="text-align: center;">-0.0205340</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">near_ARL</td>
+<td style="text-align: center;">-0.0119050</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">near_MRT</td>
+<td style="text-align: center;">0.0257583</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">near_BTS</td>
+<td style="text-align: center;">0.0235744</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">room_type_Private room</td>
+<td style="text-align: center;">-0.0007819</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">room_type_Shared room</td>
+<td style="text-align: center;">-0.0009284</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-striped table-hover table-condensed table-bordered table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">Model</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">OLS_1</td>
+<td style="text-align: center;">9822.85</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">OLS_2</td>
+<td style="text-align: center;">9818.92</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">OLS_3</td>
+<td style="text-align: center;">9824.60</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">OLS_4</td>
+<td style="text-align: center;">9825.56</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">OLS_5</td>
+<td style="text-align: center;">9833.93</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">OLS_6</td>
+<td style="text-align: center;">9880.11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">OLS_7</td>
+<td style="text-align: center;">9896.80</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">OLS_8</td>
+<td style="text-align: center;">9937.50</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p>Model 2 has the lowest RMSE. I will use this model for the prediction.</p>
+</section>
+</section>
+<section id="random-forest-model" class="level3">
+<h3 class="anchored" data-anchor-id="random-forest-model">Random Forest Model</h3>
+<p>Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (<em>mtry</em>: Number of variables randomly sampled as candidates at each split)</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Random Forest 
+
+3855 samples
+ 116 predictor
+
+No pre-processing
+Resampling: Cross-Validated (5 fold) 
+Summary of sample sizes: 3085, 3084, 3084, 3082, 3085 
+Resampling results across tuning parameters:
+
+  mtry  RMSE      Rsquared    MAE     
+  20    7430.081  0.12472364  1200.713
+  21    7519.372  0.10924556  1218.491
+  22    7544.335  0.10461649  1237.242
+  23    7540.079  0.10186072  1230.670
+  24    7520.951  0.10091389  1236.618
+  25    7506.664  0.11027048  1248.403
+  26    7643.324  0.08787026  1265.355
+  27    7595.339  0.09811004  1247.448
+  28    7606.781  0.09817046  1245.890
+  29    7622.455  0.09676493  1249.043
+  30    7568.721  0.10016554  1245.970
+  31    7684.438  0.09999886  1247.642
+  32    7646.785  0.09813678  1260.314
+  33    7585.286  0.11102077  1255.690
+  34    7671.528  0.08675051  1261.239
+  35    7614.032  0.09500121  1246.469
+  36    7706.097  0.09201634  1280.005
+  37    7681.397  0.10213950  1261.296
+  38    7709.326  0.08786734  1269.878
+  39    7702.369  0.08684048  1279.322
+  40    7755.063  0.08746497  1279.989
+
+RMSE was used to select the optimal model using the smallest value.
+The final value used for the model was mtry = 20.</code></pre>
+</div>
+</div>
+</section>
+<section id="bagging-model" class="level3">
+<h3 class="anchored" data-anchor-id="bagging-model">Bagging Model</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-striped table-hover table-condensed table-bordered table-sm small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: center;" data-quarto-table-cell-role="th">minsplit</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">9961.40</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">10047.71</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">10005.33</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">8</td>
+<td style="text-align: center;">10054.35</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">10</td>
+<td style="text-align: center;">10032.33</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<p>The optimal stopping rule chosen by CV is minsplit = 6, since it is the model with the lowest RMSE.</p>
+</section>
+</section>
+<section id="evaluating-performance" class="level2">
+<h2 class="anchored" data-anchor-id="evaluating-performance">Evaluating Performance</h2>
+<div class="cell">
+<div class="cell-output-display">
+<table data-quarto-postprocess="true" class="table table-sm table-striped small">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th">column</th>
+<th style="text-align: right;" data-quarto-table-cell-role="th">na_count</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">price</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">host_response_rate</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">host_acceptance_rate</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">host_is_superhost</td>
+<td style="text-align: right;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">host_total_listings_count</td>
+<td style="text-align: right;">0</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<section id="rmse-results" class="level3">
+<h3 class="anchored" data-anchor-id="rmse-results">RMSE Results</h3>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE_OLS</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE_RF</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE_Bagging</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE/Price_OLS</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE/Price_RF</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE/Price_Bagging</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Mean_price</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Small Apartments</td>
+<td style="text-align: center;">1926.32</td>
+<td style="text-align: center;">1428.94</td>
+<td style="text-align: center;">1474.40</td>
+<td style="text-align: center;">1.04</td>
+<td style="text-align: center;">0.77</td>
+<td style="text-align: center;">0.80</td>
+<td style="text-align: center;">1846.50</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Large Apartments</td>
+<td style="text-align: center;">2265.10</td>
+<td style="text-align: center;">1713.20</td>
+<td style="text-align: center;">1784.41</td>
+<td style="text-align: center;">0.65</td>
+<td style="text-align: center;">0.49</td>
+<td style="text-align: center;">0.51</td>
+<td style="text-align: center;">3480.42</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">All Apartments</td>
+<td style="text-align: center;">2027.62</td>
+<td style="text-align: center;">1514.53</td>
+<td style="text-align: center;">1568.06</td>
+<td style="text-align: center;">0.88</td>
+<td style="text-align: center;">0.66</td>
+<td style="text-align: center;">0.68</td>
+<td style="text-align: center;">2307.35</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+</section>
+<section id="plotting-the-actual-price-vs-predicted-price." class="level3">
+<h3 class="anchored" data-anchor-id="plotting-the-actual-price-vs-predicted-price.">Plotting the actual price vs predicted price.</h3>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-39-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-40-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-41-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="task-2" class="level1">
+<h1>Task 2</h1>
+<p>In task, I use the three model trained and selectected by using data from March 2023 to predict the price of apartments in September 2023 (live data).</p>
+<div class="cell">
+<div class="cell-output-display">
+<table class="table table-sm table-striped small" data-quarto-postprocess="true">
+<thead>
+<tr class="header">
+<th style="text-align: left;" data-quarto-table-cell-role="th"></th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE_OLS</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE_RF</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE_Bagging</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE/Price_OLS</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE/Price_RF</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">RMSE/Price_Bagging</th>
+<th style="text-align: center;" data-quarto-table-cell-role="th">Mean_price</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Small Apartments</td>
+<td style="text-align: center;">10550.74</td>
+<td style="text-align: center;">10362.91</td>
+<td style="text-align: center;">10661.98</td>
+<td style="text-align: center;">4.13</td>
+<td style="text-align: center;">4.06</td>
+<td style="text-align: center;">4.18</td>
+<td style="text-align: center;">2552.30</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Large Apartments</td>
+<td style="text-align: center;">3684.06</td>
+<td style="text-align: center;">2556.38</td>
+<td style="text-align: center;">3838.73</td>
+<td style="text-align: center;">0.96</td>
+<td style="text-align: center;">0.66</td>
+<td style="text-align: center;">1.00</td>
+<td style="text-align: center;">3852.46</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">All Apartments</td>
+<td style="text-align: center;">9179.97</td>
+<td style="text-align: center;">8915.35</td>
+<td style="text-align: center;">9289.81</td>
+<td style="text-align: center;">3.15</td>
+<td style="text-align: center;">3.06</td>
+<td style="text-align: center;">3.19</td>
+<td style="text-align: center;">2912.05</td>
+</tr>
+</tbody>
+</table>
+
+
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-46-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-47-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-48-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>It can be seen that there are extreme outliers in the price of the apartments in September. These may partly explain the significance increase in the RMSE of the models. Recall that the maximum price of apartments in March is only around 10,000 THB.</p>
+<p>To get more insights on the performance, I exclude the outliers from the plot.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-49-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-50-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-51-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="task-3-feature-contribution-of-the-random-forest-model" class="level1">
+<h1>Task 3 Feature Contribution of the Random Forest Model</h1>
+<p>In this section, SHAP values are used to explain the predictions of the Random Forest model in the holdout set. Specifically, SHAP (SHapley Additive exPlanations) is used. I use packages ‘treeshap’ and ‘shapviz’ to implement this task.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-53-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="Assignment2_Quarto_html_PJ_files/figure-html/unnamed-chunk-54-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
