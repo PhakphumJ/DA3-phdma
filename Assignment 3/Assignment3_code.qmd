@@ -1,0 +1,219 @@
+---
+title: "Assignment3_code"
+author: "Phakphum Jatupitpornchan"
+format: pdf
+execute: 
+  echo: false
+---
+
+# Task 1
+Importing Data
+```{r}
+#| warning: false
+#| echo: false
+### Use packages, Import Data
+rm(list=ls())
+# Import Libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(weights)
+library(caret)
+library(kableExtra)
+library(tidyr)
+library(fastDummies)
+library(groupdata2)
+
+# Set Working Directory
+
+setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction with Machine Learning/Assignment/DA3-phdma/Assignment 3")
+
+# Import Data
+
+Data_panel <- read_csv("cs_bisnode_panel.csv")
+
+
+```
+
+```{r}
+# inspect year in Data_panel
+Data_panel %>% 
+  group_by(year) %>% 
+  summarise(n = n())
+```
+
+
+```{r}
+## Restrict to those with sales > 6,000 eur
+Data_panel <- Data_panel %>% 
+  filter(sales > 6000)
+```
+
+
+## Sample Design
+
+We will have 3 samples. 2011-2013 in Data_panel. However, in each sample, we will use values from the previous year as well to create variables such as growth of employment. Hence, in each data set, we will have 2 years of data. For example, in the first data set, we will have 2010 and 2011. In the second data set, we will have 2011 and 2012. In the third data set, we will have 2012 and 2013.
+
+## Label Engineering
+
+The growth indicator I am interested in is profit. However, since profit can be negative, I will use sales/total cost instead. In the dataset, there is no information for total cost. However, this can be calculated by subtracting profit from sales and extra income.
+
+```{r}
+## Create variable total_cost
+Data_panel <- Data_panel %>% 
+  mutate(total_cost = sales + extra_inc - profit_loss_year )
+
+## Create variable sales_cost_ratio
+Data_panel <- Data_panel %>% 
+  mutate(sales_cost_ratio = sales/total_cost)
+```
+
+
+```{r}
+### Create variable growth_rate in sales_cost_ratio for each firm in each year
+
+## arrange Data_panel by comp_id and year.
+Data_panel <- Data_panel %>% 
+  arrange(comp_id, year)
+
+## Create the growth rate variable
+Data_panel <- Data_panel %>% 
+  group_by(comp_id) %>% 
+  mutate(growth_rate = sales_cost_ratio/lag(sales_cost_ratio) - 1)
+```
+
+```{r}
+## Let's see the distribution of growth_rate
+Data_panel %>% 
+  group_by(year) %>% 
+  summarise(mean_growth_rate = mean(growth_rate, na.rm = TRUE),
+            sd_growth_rate = sd(growth_rate, na.rm = TRUE),
+            median_growth_rate = median(growth_rate, na.rm = TRUE),
+            min_growth_rate = min(growth_rate, na.rm = TRUE),
+            max_growth_rate = max(growth_rate, na.rm = TRUE))
+
+```
+
+
+The outcome variable (*fast_growing*) is an indicator of whether the firm achieves an **outstanding annual growth rate in *sales_cost_ratio* for the next 2 consecutive years**. 
+
+Outstanding annual growth rate is defined as having the highest 25% growth rate in the industry that year (4th quartile). 
+
+```{r}
+## Create variable forth_quartile_growth_rate for each industry
+Data_panel <- Data_panel %>% 
+  group_by(ind, year) %>% 
+  mutate(forth_quartile_growth_rate = quantile(growth_rate, 0.75, na.rm = TRUE))
+```
+
+
+```{r}
+### Create variable fast_growing
+## Create variable growth_rate_t+1
+Data_panel <- Data_panel %>% 
+  group_by(comp_id) %>% 
+  mutate(growth_rate_t1 = lead(growth_rate, 1))
+
+## Create variable growth_rate_t+2
+Data_panel <- Data_panel %>% 
+  group_by(comp_id) %>% 
+  mutate(growth_rate_t2 = lead(growth_rate, 2))
+
+## Create variable forth_quartile_growth_rate_t+1
+Data_panel <- Data_panel %>% 
+  group_by(ind, year) %>% 
+  mutate(forth_quartile_growth_rate_t1 = lead(forth_quartile_growth_rate, 1))
+
+## Create variable forth_quartile_growth_rate_t+2
+Data_panel <- Data_panel %>% 
+  group_by(ind, year) %>% 
+  mutate(forth_quartile_growth_rate_t2 = lead(forth_quartile_growth_rate, 2))
+
+## Create variable outstanding_growth_rate_t+1 (growth_rate t+1 > or = forth_quartile_growth_rate_t+1)
+Data_panel <- Data_panel %>% 
+  mutate(outstanding_growth_rate_t1 = growth_rate_t1 > forth_quartile_growth_rate_t1 | growth_rate_t1 == forth_quartile_growth_rate_t1)
+
+
+## Create variable outstanding_growth_rate_t+2
+Data_panel <- Data_panel %>% 
+  mutate(outstanding_growth_rate_t2 = growth_rate_t2 > forth_quartile_growth_rate_t2 | growth_rate_t2 == forth_quartile_growth_rate_t2)
+
+
+## Create variable fast_growing
+Data_panel <- Data_panel %>% 
+  mutate(fast_growing = outstanding_growth_rate_t1 & outstanding_growth_rate_t2)
+
+```
+
+```{r}
+## Restrict Data_panel to 2010-2013
+
+Data_panel <- Data_panel %>% 
+  filter(year >= 2010 & year <= 2013)
+```
+
+```{r}
+## Let's examine outstanding_growth_rate_t1
+Data_panel %>% 
+  group_by(year) %>%
+  count(outstanding_growth_rate_t1)
+```
+
+
+```{r}
+## Drop those with missing values in fast_growing
+Data_panel <- Data_panel %>% 
+  filter(!is.na(fast_growing))
+```
+
+```{r}
+## Lets' examine fast_growing
+Data_panel %>% 
+  group_by(year) %>%
+  count(fast_growing)
+```
+We have a problem of class imbalance. We will deal with this by downsampling the majority class.
+
+```{r}
+## Downsample majority class in each year
+# Randomly filter out 65% of the majority class in each year.
+set.seed(20231210)
+Data_toss <- Data_panel %>%
+  group_by(year) %>%
+  filter(fast_growing == FALSE) %>%
+  sample_frac(0.65)
+
+# Toss them out of the original dataset.
+Data_panel <- Data_panel %>%
+  anti_join(Data_toss, by = c("comp_id", "year"))
+```
+
+```{r}
+## Lets' examine fast_growing again
+Data_panel %>% 
+  group_by(year) %>%
+  count(fast_growing)
+```
+
+
+### Feature Engineering 
+
+
+## Dealing with Missing Values
+```{r}
+### Examining NAs in Data_panel
+NA_Data_panel <- Data_panel %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  arrange(desc(na_count)) 
+
+NA_Data_panel 
+```
+
+```{r}
+# drop variables with too many NAs
+Data_panel <- Data_panel %>%
+  select(-c(D, COGS, finished_prod, net_dom_sales, net_exp_sales, wages, labor_avg))
+```
+
+
