@@ -22,6 +22,7 @@ library(caret)
 library(kableExtra)
 library(tidyr)
 library(fastDummies)
+library(groupdata2)
 
 # Set Working Directory
 
@@ -55,37 +56,59 @@ We will have 3 samples. 2011-2013 in Data_panel. However, in each sample, we wil
 
 ## Label Engineering
 
-The outcome variable (*fast_growing*) is an indicator of whether the firm achieves an **outstanding annual growth rate in sales revenue for the next 2 consecutive years**. 
+The growth indicator I am interested in is profit. However, since profit can be negative, I will use sales/total cost instead. In the dataset, there is no information for total cost. However, this can be calculated by subtracting profit from sales and extra income.
 
-Outstanding annual growth rate is defined as having higher growth rate than the average growth rate of firms in the same industry by more than 20% in that year.
+```{r}
+## Create variable total_cost
+Data_panel <- Data_panel %>% 
+  mutate(total_cost = sales + extra_inc - profit_loss_year )
 
-For example, when the average growth rate of sales in the industry is 5% in 2011 and 2012, if the firm's annual growth rate in sales is 6.1% in 2011 and 6.1% in 2012, then *fast_growing* = 1. However, if the firm's annual growth rate in sales is 6.1% in 2011 but 5.9% in 2012, then *fast_growing* = 0.
-
+## Create variable sales_cost_ratio
+Data_panel <- Data_panel %>% 
+  mutate(sales_cost_ratio = sales/total_cost)
+```
 
 
 ```{r}
-### Create variable fast_growing from profit_loss_year
-
-## drop observations with NA in sales
-Data_panel <- Data_panel %>% 
-  filter(!is.na(sales))
+### Create variable growth_rate in sales_cost_ratio for each firm in each year
 
 ## arrange Data_panel by comp_id and year.
 Data_panel <- Data_panel %>% 
   arrange(comp_id, year)
 
-## Create variable growth_rate for each firm in each year
+## Create the growth rate variable
 Data_panel <- Data_panel %>% 
   group_by(comp_id) %>% 
-  mutate(growth_rate = sales/lag(sales) - 1)
+  mutate(growth_rate = sales_cost_ratio/lag(sales_cost_ratio) - 1)
+```
+
+```{r}
+## Let's see the distribution of growth_rate
+Data_panel %>% 
+  group_by(year) %>% 
+  summarise(mean_growth_rate = mean(growth_rate, na.rm = TRUE),
+            sd_growth_rate = sd(growth_rate, na.rm = TRUE),
+            median_growth_rate = median(growth_rate, na.rm = TRUE),
+            min_growth_rate = min(growth_rate, na.rm = TRUE),
+            max_growth_rate = max(growth_rate, na.rm = TRUE))
+
+```
 
 
-## Create variable growth_rate_industry
+The outcome variable (*fast_growing*) is an indicator of whether the firm achieves an **outstanding annual growth rate in *sales_cost_ratio* for the next 2 consecutive years**. 
+
+Outstanding annual growth rate is defined as having the highest 25% growth rate in the industry that year (4th quartile). 
+
+```{r}
+## Create variable forth_quartile_growth_rate for each industry
 Data_panel <- Data_panel %>% 
   group_by(ind, year) %>% 
-  mutate(growth_rate_industry = mean(growth_rate, na.rm = TRUE))
+  mutate(forth_quartile_growth_rate = quantile(growth_rate, 0.75, na.rm = TRUE))
+```
 
 
+```{r}
+### Create variable fast_growing
 ## Create variable growth_rate_t+1
 Data_panel <- Data_panel %>% 
   group_by(comp_id) %>% 
@@ -96,24 +119,24 @@ Data_panel <- Data_panel %>%
   group_by(comp_id) %>% 
   mutate(growth_rate_t2 = lead(growth_rate, 2))
 
-## Create variable growth_rate_industry_t+1
+## Create variable forth_quartile_growth_rate_t+1
 Data_panel <- Data_panel %>% 
   group_by(ind, year) %>% 
-  mutate(growth_rate_industry_t1 = lead(growth_rate_industry, 1))
+  mutate(forth_quartile_growth_rate_t1 = lead(forth_quartile_growth_rate, 1))
 
-## Create variable growth_rate_industry_t+2
+## Create variable forth_quartile_growth_rate_t+2
 Data_panel <- Data_panel %>% 
   group_by(ind, year) %>% 
-  mutate(growth_rate_industry_t2 = lead(growth_rate_industry, 2))
+  mutate(forth_quartile_growth_rate_t2 = lead(forth_quartile_growth_rate, 2))
 
-
-## Create variable outstanding_growth_rate_t+1
+## Create variable outstanding_growth_rate_t+1 (growth_rate t+1 > or = forth_quartile_growth_rate_t+1)
 Data_panel <- Data_panel %>% 
-  mutate(outstanding_growth_rate_t1 = growth_rate_t1 > growth_rate_industry_t1 + 0.1*growth_rate_industry_t1)
+  mutate(outstanding_growth_rate_t1 = growth_rate_t1 > forth_quartile_growth_rate_t1 | growth_rate_t1 == forth_quartile_growth_rate_t1)
+
 
 ## Create variable outstanding_growth_rate_t+2
 Data_panel <- Data_panel %>% 
-  mutate(outstanding_growth_rate_t2 = growth_rate_t2 > growth_rate_industry_t2 + 0.1*growth_rate_industry_t2)
+  mutate(outstanding_growth_rate_t2 = growth_rate_t2 > forth_quartile_growth_rate_t2 | growth_rate_t2 == forth_quartile_growth_rate_t2)
 
 
 ## Create variable fast_growing
@@ -130,15 +153,18 @@ Data_panel <- Data_panel %>%
 ```
 
 ```{r}
-## Let's plot the relative frequency histogram of growth_rate in 2011
+## Let's examine outstanding_growth_rate_t1
 Data_panel %>% 
-  filter(year == 2011) %>% 
-  ggplot(aes(x = growth_rate)) +
-  geom_density(alpha = 0.2, fill = "lightblue") +
-  labs(title = "Relative Frequency Histogram of Growth Rate in 2011", x = "Growth Rate", y = "Relative Frequency") + xlim(-2, 6)
+  group_by(year) %>%
+  count(outstanding_growth_rate_t1)
 ```
 
 
+```{r}
+## Drop those with missing values in fast_growing
+Data_panel <- Data_panel %>% 
+  filter(!is.na(fast_growing))
+```
 
 ```{r}
 ## Lets' examine fast_growing
@@ -146,7 +172,28 @@ Data_panel %>%
   group_by(year) %>%
   count(fast_growing)
 ```
+We have a problem of class imbalance. We will deal with this by downsampling the majority class.
 
+```{r}
+## Downsample majority class in each year
+# Randomly filter out 65% of the majority class in each year.
+set.seed(20231210)
+Data_toss <- Data_panel %>%
+  group_by(year) %>%
+  filter(fast_growing == FALSE) %>%
+  sample_frac(0.65)
+
+# Toss them out of the original dataset.
+Data_panel <- Data_panel %>%
+  anti_join(Data_toss, by = c("comp_id", "year"))
+```
+
+```{r}
+## Lets' examine fast_growing again
+Data_panel %>% 
+  group_by(year) %>%
+  count(fast_growing)
+```
 
 
 ### Feature Engineering 
