@@ -402,7 +402,22 @@ Data_panel <- Data_panel %>%
   mutate(gender_m = factor(gender, levels = c("female", "male", "mix")),
          region_m = factor(region_m, levels = c("Central", "East", "West")), urban_m = factor(urban_m, levels = c(1,2,3)))
 
+# drop gender
+Data_panel <- Data_panel %>% 
+  select(-gender)
+
 ```
+
+```{r}
+### create foreign_management variable (binary)
+Data_panel <- Data_panel %>%
+  mutate(foreign_management = as.numeric(foreign >= 0.5))
+
+# drop foreign
+Data_panel <- Data_panel %>% 
+  select(-foreign)
+```
+
 
 
 ```{r}
