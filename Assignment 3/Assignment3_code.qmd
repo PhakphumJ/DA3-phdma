@@ -1,7 +1,7 @@
 ---
 title: "Assignment3_code"
 author: "Phakphum Jatupitpornchan"
-format: pdf
+format: html
 execute: 
   echo: false
 ---
@@ -54,6 +54,133 @@ Data_panel <- Data_panel %>%
 
 We will have 3 samples. 2011-2013 in Data_panel. However, in each sample, we will use values from the previous year as well to create variables such as growth of employment. Hence, in each data set, we will have 2 years of data. For example, in the first data set, we will have 2010 and 2011. In the second data set, we will have 2011 and 2012. In the third data set, we will have 2012 and 2013.
 
+I restrict the sample to only those existed in t-1, t, t+1, and t+2 in the dataset. 
+
+### Dealing with Missing Values
+
+```{r}
+## Inspect NAs in Data_panel showing the most NAs first.
+Data_panel %>% ungroup() %>%
+  summarise_all(funs(sum(is.na(.)))) %>% 
+  gather(variable, value) %>% 
+  arrange(desc(value))
+```
+
+D, finished_prod, wages, COGS, net_dom_sales, net_exp_sales, exit_year, exit_date are missing from almost all observations. Hence, we will drop these variables.
+
+birth_year will be used to calculate CEO age, which is an important variable. Hence, I drop observations with missing birth_year.
+
+Based, on further inspection, I found that the missing values in founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin can imputed by looking at the next year. For example:
+
+
+```{r}
+## Print the value of founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin of firm 1003200.
+
+Data_panel %>% filter(comp_id == 1003200) %>%
+  select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)
+
+```
+
+```{r}
+Data_panel %>% filter(comp_id == 1046213) %>%
+  select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)
+
+```
+
+```{r}
+Data_panel %>% filter(comp_id == 1084759
+) %>%
+  select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)
+```
+
+However, it is not always the case that the values of these values are the same in each year. Hence, flag variables will be created to indicate that these are imputed.
+
+Similar things can be observed with *birth_year*. It can be imputed by using the value in the next year. For example:
+
+```{r}
+Data_panel %>% filter(comp_id == 1046213) %>%
+  select(comp_id, year, ceo_count, female, birth_year)
+```
+
+However, it is possible that in some firms, CEO may not be the same person in each year. Hence, flag variables will be created to indicate that these are imputed.
+
+
+```{r}
+# drop variables with too many NAs
+Data_panel <- Data_panel %>%
+  select(-c(D, COGS, finished_prod, net_dom_sales, net_exp_sales, wages))
+
+# drop irrelevant variables
+Data_panel <- Data_panel %>%
+  select(-c(exit_year, exit_date))
+```
+
+
+```{r}
+
+### number emp, very noisy measure
+## Impute missing values with mean and add a flag variable
+Data_panel <- Data_panel %>%
+  mutate(labor_avg_mod = ifelse(is.na(labor_avg), mean(labor_avg, na.rm = TRUE), labor_avg),
+         flag_miss_labor_avg = as.numeric(is.na(labor_avg)))
+
+Data_panel <- Data_panel %>%
+  select(-labor_avg)
+```
+
+```{r}
+### Imputing missing values in founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin.
+
+## Impute missing values in founded_year with the lead year.
+# repeat 10 times to make sure that all missing values are imputed
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(founded_year = ifelse(is.na(founded_year), lead(founded_year), founded_year),
+           flag_miss_founded_year = as.numeric(is.na(founded_year)))
+}
+
+## Do the same thing for ceo_count.
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(ceo_count = ifelse(is.na(ceo_count), lead(ceo_count), ceo_count))
+}
+
+## Do the same thing for foreign.
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(foreign = ifelse(is.na(foreign), lead(foreign), foreign))
+}
+
+## Do the same thing for female.
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(female = ifelse(is.na(female), lead(female), female))
+}
+
+## Do the same thing for inoffice_days.
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(inoffice_days = ifelse(is.na(inoffice_days), lead(inoffice_days), inoffice_days))
+}
+
+## Do the same thing for origin.
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(origin = ifelse(is.na(origin), lead(origin), origin))
+}
+
+```
+
+```{r}
+### Imputing missing values in birth_year.
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(birth_year = ifelse(is.na(birth_year), lead(birth_year), birth_year),
+           flag_miss_birth_year = as.numeric(is.na(birth_year)))
+}
+```
+
+
 ## Label Engineering
 
 The growth indicator I am interested in is profit. However, since profit can be negative, I will use sales/total cost instead. In the dataset, there is no information for total cost. However, this can be calculated by subtracting profit from sales and extra income.
@@ -79,18 +206,17 @@ Data_panel <- Data_panel %>%
 ## Create the growth rate variable
 Data_panel <- Data_panel %>% 
   group_by(comp_id) %>% 
-  mutate(growth_rate = sales_cost_ratio/lag(sales_cost_ratio) - 1)
+  mutate(growth_rate = (sales_cost_ratio/lag(sales_cost_ratio) - 1)*100)
 ```
 
 ```{r}
-## Let's see the distribution of growth_rate
+## Let's plot distribution of growth_rate
 Data_panel %>% 
-  group_by(year) %>% 
-  summarise(mean_growth_rate = mean(growth_rate, na.rm = TRUE),
-            sd_growth_rate = sd(growth_rate, na.rm = TRUE),
-            median_growth_rate = median(growth_rate, na.rm = TRUE),
-            min_growth_rate = min(growth_rate, na.rm = TRUE),
-            max_growth_rate = max(growth_rate, na.rm = TRUE))
+  ggplot(aes(x = growth_rate)) +
+  geom_histogram(bins = 50) +
+  labs(title = "Distribution of growth_rate",
+       x = "growth_rate (%)",
+       y = "Count") + xlim(-150, 300)
 
 ```
 
@@ -139,11 +265,27 @@ Data_panel <- Data_panel %>%
   mutate(outstanding_growth_rate_t2 = growth_rate_t2 > forth_quartile_growth_rate_t2 | growth_rate_t2 == forth_quartile_growth_rate_t2)
 
 
-## Create variable fast_growing
+## Create variable fast_growing. Fast growing = 1 if and only if outstanding_growth_rate_t+1 = 1 and outstanding_growth_rate_t+2 = 1, otherwise 0
+Data_panel$fast_growing <- ifelse(
+  Data_panel$outstanding_growth_rate_t1 == 1 & Data_panel$outstanding_growth_rate_t2 == 1,
+  1,
+  0
+)
+
+# Those with missing values in fast_growing are those who did not appear in t+1 or t+2 because they exit the market. Hence, it should be 0.
+Data_panel$fast_growing[is.na(Data_panel$fast_growing)] <- 0
+
+# Do the same for outstanding_growth_rate_t1 and outstanding_growth_rate_t2
+Data_panel$outstanding_growth_rate_t1[is.na(Data_panel$outstanding_growth_rate_t1)] <- 0
+Data_panel$outstanding_growth_rate_t2[is.na(Data_panel$outstanding_growth_rate_t2)] <- 0
+
+# Drop growth_rate_t1, growth_rate_t2, forth_quartile_growth_rate_t1, forth_quartile_growth_rate_t2
 Data_panel <- Data_panel %>% 
-  mutate(fast_growing = outstanding_growth_rate_t1 & outstanding_growth_rate_t2)
+  select(-c(growth_rate_t1, growth_rate_t2, forth_quartile_growth_rate_t1, forth_quartile_growth_rate_t2))
+
 
 ```
+
 
 ```{r}
 ## Restrict Data_panel to 2010-2013
@@ -161,9 +303,10 @@ Data_panel %>%
 
 
 ```{r}
-## Drop those with missing values in fast_growing
+## Drop those with missing values in growth_rate since these are firms who did not appear in year t-1. 
 Data_panel <- Data_panel %>% 
-  filter(!is.na(fast_growing))
+  filter(!is.na(growth_rate))
+
 ```
 
 ```{r}
@@ -172,21 +315,27 @@ Data_panel %>%
   group_by(year) %>%
   count(fast_growing)
 ```
-We have a problem of class imbalance. We will deal with this by downsampling the majority class.
+We have a problem of class imbalance as the fast growing companies only makes a small proportion of the sample. We will deal with this by downsampling the majority class. 
+
+
 
 ```{r}
 ## Downsample majority class in each year
-# Randomly filter out 65% of the majority class in each year.
+# Randomly filter out 70% of the majority class in each year.
 set.seed(20231210)
 Data_toss <- Data_panel %>%
   group_by(year) %>%
   filter(fast_growing == FALSE) %>%
-  sample_frac(0.65)
+  sample_frac(0.7)
 
 # Toss them out of the original dataset.
 Data_panel <- Data_panel %>%
   anti_join(Data_toss, by = c("comp_id", "year"))
+
+# remove Data_toss from the environment
+rm(Data_toss)
 ```
+
 
 ```{r}
 ## Lets' examine fast_growing again
@@ -199,21 +348,31 @@ Data_panel %>%
 ### Feature Engineering 
 
 
-## Dealing with Missing Values
-```{r}
-### Examining NAs in Data_panel
-NA_Data_panel <- Data_panel %>%
-  summarise(across(everything(), ~ sum(is.na(.)))) %>%
-  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
-  arrange(desc(na_count)) 
 
-NA_Data_panel 
-```
-
+#### Generate variables based on textbook's code.
 ```{r}
-# drop variables with too many NAs
+### CEO age
+## Drop those without birth_year
 Data_panel <- Data_panel %>%
-  select(-c(D, COGS, finished_prod, net_dom_sales, net_exp_sales, wages, labor_avg))
+  filter(!is.na(birth_year))
+
+## Create variable ceo_age
+Data_panel <- Data_panel %>%
+  mutate(ceo_age = year - birth_year)
+
+## Catagorize ceo_age into 3 intervals. Young: < 35, Middle: 36-65, Old: > 65. Use Old as reference.
+Data_panel <- Data_panel %>%
+  mutate(ceo_age_young = as.numeric(ceo_age < 35),
+         ceo_age_middle = as.numeric(ceo_age >= 35 & ceo_age <= 65),
+         ceo_age_old = as.numeric(ceo_age > 65))
+
+## Drop ceo_age
+Data_panel <- Data_panel %>%
+  select(-ceo_age)
 ```
+
+
+
+
 
 
