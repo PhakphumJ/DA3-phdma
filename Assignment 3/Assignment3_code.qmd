@@ -163,6 +163,13 @@ for (i in 1:10) {
     mutate(inoffice_days = ifelse(is.na(inoffice_days), lead(inoffice_days), inoffice_days))
 }
 
+## Do the same thing for gender.
+for (i in 1:10) {
+  Data_panel <- Data_panel %>%
+    mutate(gender = ifelse(is.na(gender), lead(gender), gender))
+}
+
+
 ## Do the same thing for origin.
 for (i in 1:10) {
   Data_panel <- Data_panel %>%
@@ -288,13 +295,6 @@ Data_panel <- Data_panel %>%
 
 
 ```{r}
-## Restrict Data_panel to 2010-2013
-
-Data_panel <- Data_panel %>% 
-  filter(year >= 2010 & year <= 2013)
-```
-
-```{r}
 ## Let's examine outstanding_growth_rate_t1
 Data_panel %>% 
   group_by(year) %>%
@@ -347,6 +347,15 @@ Data_panel %>%
 
 ### Feature Engineering 
 
+```{r}
+## Create variable age
+Data_panel <- Data_panel %>% 
+  mutate(age = year - founded_year)
+
+## Create variable age squared
+Data_panel <- Data_panel %>% 
+  mutate(age_squared = age^2)
+```
 
 
 #### Generate variables based on textbook's code.
@@ -371,8 +380,35 @@ Data_panel <- Data_panel %>%
   select(-ceo_age)
 ```
 
+```{r}
+# change some industry category codes
+Data_panel <- Data_panel %>%
+  mutate(ind2_cat = ind2 %>%
+           ifelse(. > 56, 60, .)  %>%
+           ifelse(. < 26, 20, .) %>%
+           ifelse(. < 55 & . > 35, 40, .) %>%
+           ifelse(. == 31, 30, .) %>%
+           ifelse(is.na(.), 99, .)
+           )
+
+# drop ind2
+Data_panel <- Data_panel %>%
+  select(-ind2)
+```
+
+```{r}
+### create factors variables urban_m, gender_m, region_m.
+Data_panel <- Data_panel %>%
+  mutate(gender_m = factor(gender, levels = c("female", "male", "mix")),
+         region_m = factor(region_m, levels = c("Central", "East", "West")), urban_m = factor(urban_m, levels = c(1,2,3)))
+
+```
 
 
+```{r}
+## Restrict Data_panel to 2010-2013
 
-
+Data_panel <- Data_panel %>% 
+  filter(year >= 2010 & year <= 2013)
+```
 
