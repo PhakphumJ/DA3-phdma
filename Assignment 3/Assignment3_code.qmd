@@ -23,6 +23,7 @@ library(kableExtra)
 library(tidyr)
 library(fastDummies)
 library(groupdata2)
+library(glmnet)
 
 # Set Working Directory
 
@@ -413,6 +414,28 @@ Data_panel <- Data_panel %>%
 Data_panel <- Data_panel %>%
   select(-ind2)
 ```
+
+```{r}
+### Examine value of ind2_cat
+Data_panel %>%
+  group_by(ind2_cat) %>%
+  count()
+```
+
+```{r}
+## Drop those with ind2_cat = 35
+Data_panel <- Data_panel %>%
+  filter(ind2_cat != 35)
+```
+
+```{r}
+## Make ind2_cat a factor variable
+Data_panel <- Data_panel %>%
+  mutate(ind2_cat = factor(ind2_cat, levels = c(20, 26, 27, 28, 30, 32, 33, 40, 55, 56, 60, 99)))
+```
+
+
+
 
 ```{r}
 ### create factors variables urban_m, gender_m, region_m.
@@ -1159,9 +1182,54 @@ for (i in 1:5) {
 RMSE_Logit_5 <- sqrt(mean(unlist(results)^2))
 ```
 
+Logistic regression model 2 and 3 have the lowest RMSE. 
 
 
 ### LASSO Logistic Regression
+
+The parameter lambda is chosen by cross validation.
+
+```{r}
+#### LASSO
+## Let's define the predictor matrix X.
+X_Lasso <- model.matrix(fast_growing ~ ., data = Data_2012)[,-1]
+
+### Create interaction terms (except for flags)
+
+# Identify variables containing the word "flag"
+names_to_exclude <- grep("flag", colnames(X_Lasso), value = TRUE)
+
+# Filter variables that do not contain the word "names"
+X_without_flag <- X_Lasso[, !colnames(X_Lasso) %in% names_to_exclude]
+
+# Generate interaction terms for the remaining variables
+X_Lasso_interaction <- model.matrix(~.^2, data.frame(X_without_flag))
+
+# Combine them
+X_Lasso <- cbind(X_Lasso, X_Lasso_interaction)
+
+## Let's define the response vector Y.
+Y_Lasso <- Data_2012$fast_growing
+
+```
+
+```{r}
+### Fit LASSO logistic regression model using glmnet 5 fold cross validation.
+set.seed(20231210)
+# Fit the model
+lasso_fit <- cv.glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, nfolds = 5)
+
+# Get the optimal value of lambda
+lambda_optimal <- lasso_fit$lambda.min
+
+# Fit the final model with the optimal lambda
+```
+
+```{r}
+## Report the optimal lambda.
+cat("Optimal lambda:", lambda_optimal_interactions, "\n")
+```
+
 
 
 ### Random Forest
