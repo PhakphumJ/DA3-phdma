@@ -372,7 +372,7 @@ Data_panel <- Data_panel %>%
 ```
 
 
-#### Generate variables based on textbook's code.
+#### Generate variables new variables
 ```{r}
 ### CEO age
 ## Drop those without birth_year
@@ -594,6 +594,13 @@ Data_panel <- Data_panel %>%
   ungroup()
 ```
 
+```{r}
+### There's Inf produced. Replace all Inf in all variables with NA.
+Data_panel <- Data_panel %>%
+  mutate_all(funs(replace(., is.infinite(.), NA)))
+
+```
+
 
 ### Dealing with missing values again.
 
@@ -703,7 +710,42 @@ Data_panel_focus <- Data_panel_focus %>%
 ```
 
 
-#### Downsampling
+#### Winsorize variables
+
+```{r}
+### Let's examine the distribution of the variables first.
+## Let's plot inventory_to_sales
+Data_panel_focus %>%
+  ggplot(aes(x = inventory_to_sales)) +
+  geom_histogram() +
+  labs(title = "Distribution of Inventory-to-Sales Ratio",
+       x = "Inventory-to-Sales Ratio",
+       y = "Count") + xlim(0, 1.5) + ylim(0, 10000)
+```
+
+```{r}
+## Let's plot net_profit_margin
+Data_panel_focus %>%
+  ggplot(aes(x = net_profit_margin)) +
+  geom_histogram() +
+  labs(title = "Distribution of Net Profit Margin",
+       x = "Net Profit Margin",
+       y = "Count") + xlim(-2, 2) + ylim(0, 10000)
+```
+
+```{r}
+## Let's plot fixed_assets_growth_rate
+Data_panel_focus %>%
+  ggplot(aes(x = fixed_assets_growth_rate)) +
+  geom_histogram() +
+  labs(title = "Distribution of Fixed Assets Growth Rate",
+       x = "Fixed Assets Growth Rate",
+       y = "Count") + xlim(-75, 75) + ylim(0, 5000)
+```
+
+
+
+## Downsampling
 
 
 ```{r}
@@ -738,28 +780,6 @@ Data_panel_focus %>%
   count(fast_growing)
 ```
 
-#### Winsorize variables
-
-```{r}
-### Let's examine the distribution of the variables first.
-## Let's plot inventory_to_sales
-Data_panel_focus %>%
-  ggplot(aes(x = inventory_to_sales)) +
-  geom_histogram() +
-  labs(title = "Distribution of Inventory-to-Sales Ratio",
-       x = "Inventory-to-Sales Ratio",
-       y = "Count") + xlim(0, 1.5) + ylim(0, 15000)
-```
-
-```{r}
-## Let's plot net_profit_margin
-Data_panel_focus %>%
-  ggplot(aes(x = net_profit_margin)) +
-  geom_histogram() +
-  labs(title = "Distribution of Net Profit Margin",
-       x = "Net Profit Margin",
-       y = "Count") + xlim(-2, 2) + ylim(0, 15000)
-```
 
 
 
