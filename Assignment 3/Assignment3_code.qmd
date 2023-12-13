@@ -42,6 +42,14 @@ Data_panel %>%
   summarise(n = n())
 ```
 
+```{r}
+# add all missing year and comp_id combinations -
+# originally missing combinations will have NAs in all other columns
+Data_panel <- Data_panel %>%
+  complete(year, comp_id)
+```
+
+
 
 ```{r}
 ## Restrict to those with sales > 6,000 eur
@@ -339,29 +347,12 @@ Data_panel %>%
 
 
 ```{r}
-## Drop those with missing values in growth_rate since these are firms who did not appear in year t-1. 
-Data_panel <- Data_panel %>% 
-  filter(!is.na(growth_rate))
-
-```
-
-```{r}
 ## Lets' examine fast_growing
 Data_panel %>% 
   group_by(year) %>%
   count(fast_growing)
 ```
-We have a problem of class imbalance as the fast growing companies only makes a small proportion of the sample. We will deal with this by downsampling the majority class. 
-
-
-
-
-```{r}
-## Lets' examine fast_growing again
-Data_panel %>% 
-  group_by(year) %>%
-  count(fast_growing)
-```
+We have a problem of class imbalance as the fast growing companies only makes a small proportion of the sample. We will deal with this by downsampling the majority class later. 
 
 
 ### Feature Engineering 
@@ -679,6 +670,50 @@ Data_panel_focus %>% ungroup() %>%
 
 
 ```{r}
+## Restrict Data_panel_focus to 2010-2013
+
+Data_panel_focus <- Data_panel_focus %>% 
+  filter(year >= 2010 & year <= 2013)
+```
+
+
+```{r}
+## Drop those with missing values in growth_rate since these are firms who did not appear in year t-1. 
+Data_panel_focus <- Data_panel_focus %>% 
+  filter(!is.na(growth_rate))
+
+```
+
+
+```{r}
+## Inspect NAs in Data_panel showing the most NAs first. Do it again.
+Data_panel_focus %>% ungroup() %>%
+  summarise_all(funs(sum(is.na(.)))) %>% 
+  gather(variable, value) %>% 
+  arrange(desc(value))
+```
+
+After cleaning, only a few missing values are left. These observations are dropped.
+
+```{r}
+## Drop observations with missing values.
+Data_panel_focus <- Data_panel_focus %>% 
+  drop_na()
+
+```
+
+
+#### Downsampling
+
+
+```{r}
+## Lets' examine fast_growing again
+Data_panel_focus %>% 
+  group_by(year) %>%
+  count(fast_growing)
+```
+
+```{r}
 ### Restricting sample and downsampling.
 ## Downsample majority class in each year
 # Randomly filter out 70% of the majority class in each year.
@@ -697,22 +732,11 @@ rm(Data_toss)
 ```
 
 ```{r}
-## Restrict Data_panel_focus to 2010-2013
-
-Data_panel_focus <- Data_panel_focus %>% 
-  filter(year >= 2010 & year <= 2013)
+## Lets' examine fast_growing again
+Data_panel_focus %>% 
+  group_by(year) %>%
+  count(fast_growing)
 ```
-
-
-
-```{r}
-## Inspect NAs in Data_panel showing the most NAs first. Do it again.
-Data_panel_focus %>% ungroup() %>%
-  summarise_all(funs(sum(is.na(.)))) %>% 
-  gather(variable, value) %>% 
-  arrange(desc(value))
-```
-
 
 #### Winsorize variables
 
