@@ -457,7 +457,7 @@ Items that cannot be negative: *extra_inc*, *inventories*, *personnel_exp*, *cur
 #### Create Financial Ratios 
 ## Profitability Ratio: Net Profit Margin.
 Data_panel <- Data_panel %>%
-  mutate(net_profit_margin = profit_loss_year / total_assets)
+  mutate(net_profit_margin = profit_loss_year / sales)
 ```
 
 ```{r}
@@ -710,7 +710,7 @@ Data_panel_focus <- Data_panel_focus %>%
 ```
 
 
-#### Winsorize variables
+#### Winsorize and Simplyfying Variables 
 
 ```{r}
 ### Let's examine the distribution of the variables first.
@@ -722,6 +722,8 @@ Data_panel_focus %>%
        x = "Inventory-to-Sales Ratio",
        y = "Count") + xlim(0, 1.5) + ylim(0, 7500)
 ```
+There's a few outliers. I winsorize at 1.00
+
 
 ```{r}
 ## Let's plot net_profit_margin
