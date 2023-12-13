@@ -958,6 +958,19 @@ Data_2012 %>%
 ```
 
 
+```{r}
+# dropping flags with no variation
+Data_2012 <- Data_2012 %>% ungroup()
+
+variances<- Data_2012 %>%
+  select(contains("flag")) %>%
+  apply(2, var, na.rm = TRUE) == 0
+
+Data_2012 <- Data_2012 %>%
+  select(-one_of(names(variances)[variances]))
+```
+
+
 ## Building Models
 
 Three types of models are considered in this exercise. 1) Logistic Regression, 2) LASSO Logistic Regression, and 3) Random Forest. Details of each model are described in the following subsections.
@@ -998,7 +1011,7 @@ Five logistic regression models are built. General financial and economic knowle
 
 4. Model 4: Model 3 + industry and interaction terms of the included variables with industry variable. These are important since each industry has different characteristics.
 
-5. Model 5: All variables are included.
+5. Model 5: Model 4. + the remaining variables.
 
 RMSE from the 5-fold cross validation is calculated for each model.
 
@@ -1022,10 +1035,10 @@ for (i in 1:5) {
   test <- Data_2012[-folds[[i]],]
   
   # build the model
-  model <- glm(fast_growing ~ growth_rate, data = train, family = "binomial")
+  logit_1 <- glm(fast_growing ~ growth_rate, data = train, family = "binomial")
   
   # predict the test set
-  pred <- predict(model, test, type = "response")
+  pred <- predict(logit_1, test, type = "response")
   
   # calculate RMSE
   rmse <- sqrt(mean((pred - test$fast_growing)^2))
@@ -1034,6 +1047,116 @@ for (i in 1:5) {
   results[[i]] <- rmse
 }
 
+# calculate the average RMSE
+RMSE_Logit_1 <- sqrt(mean(unlist(results)^2))
+
+## Model 2
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_2 <- update(logit_1, . ~ . + net_profit_margin + current_ratio_cat + equity_to_assets_cat + flag_asset_problem + flag_curr_liab_problem + net_profit_margin_flag_low + net_profit_margin_flag_high, data = train)
+  
+  # predict the test set
+  pred <- predict(logit_2, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_2 <- sqrt(mean(unlist(results)^2))
+
+## Model 3 
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_3 <- update(logit_2, . ~ . + fixed_assets_ratio + intang_assets_ratio + emp_avg + emp_growth_rate + flag_miss_emp + personnel_exp_per_emp + flag_personnel_exp_problem + fixed_assets_growth_rate_cat + intang_assets_growth_rate_cat + personnel_exp_per_emp_growth_rate_cat, data = train)
+                    
+  # predict the test set
+  pred <- predict(logit_3, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_3 <- sqrt(mean(unlist(results)^2))
+
+## Model 4
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_4 <- update(logit_3, . ~ . + ind2_cat + growth_rate*ind2_cat + net_profit_margin*ind2_cat + current_ratio_cat*ind2_cat + equity_to_assets_cat*ind2_cat + fixed_assets_ratio*ind2_cat + intang_assets_ratio*ind2_cat + emp_avg*ind2_cat + emp_growth_rate*ind2_cat +  personnel_exp_per_emp*ind2_cat +  fixed_assets_growth_rate_cat*ind2_cat + intang_assets_growth_rate_cat*ind2_cat + personnel_exp_per_emp_growth_rate_cat*ind2_cat, data = train)
+  
+  # predict the test set
+  pred <- predict(logit_4, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_4 <- sqrt(mean(unlist(results)^2))
+
+## Model 5
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_5 <- update(logit_4, . ~ . + ceo_count + female + inoffice_days + urban_m + region_m + age + I(age^2) + ceo_age_young + ceo_age_middle + gender_m + origin_m + foreign_management + inventory_to_sales + flag_inventories_problem + inventory_to_sales_flag, data = train)
+  
+  # predict the test set
+  pred <- predict(logit_5, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_5 <- sqrt(mean(unlist(results)^2))
 ```
 
 
