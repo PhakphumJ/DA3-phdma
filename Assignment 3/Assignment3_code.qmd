@@ -355,23 +355,6 @@ We have a problem of class imbalance as the fast growing companies only makes a 
 
 
 
-```{r}
-## Downsample majority class in each year
-# Randomly filter out 70% of the majority class in each year.
-set.seed(20231210)
-Data_toss <- Data_panel %>%
-  group_by(year) %>%
-  filter(fast_growing == FALSE) %>%
-  sample_frac(0.7)
-
-# Toss them out of the original dataset.
-Data_panel <- Data_panel %>%
-  anti_join(Data_toss, by = c("comp_id", "year"))
-
-# remove Data_toss from the environment
-rm(Data_toss)
-```
-
 
 ```{r}
 ## Lets' examine fast_growing again
@@ -384,13 +367,17 @@ Data_panel %>%
 ### Feature Engineering 
 
 ```{r}
+## Ungroup
+Data_panel <- Data_panel %>%
+  ungroup()
+```
+
+
+```{r}
 ## Create variable age
 Data_panel <- Data_panel %>% 
   mutate(age = year - founded_year)
 
-## Create variable age squared
-Data_panel <- Data_panel %>% 
-  mutate(age_squared = age^2)
 ```
 
 
@@ -543,8 +530,11 @@ Fixed assets is important as it captures the capital intensity of the firm. The 
 ```{r}
 #### Create Fixed Assets Ratio
 Data_panel <- Data_panel %>%
-  mutate(fixed_assets_ratio = fixed_assets / total_assets,
-         fixed_assets_growth_rate = (fixed_assets_ratio/lag(fixed_assets_ratio) - 1)*100)
+  mutate(fixed_assets_ratio = fixed_assets / total_assets)
+
+## Create Fixed Assets Growth Rate
+Data_panel <- Data_panel %>% group_by(comp_id) %>%
+  mutate(fixed_assets_growth_rate = (fixed_assets_ratio/lag(fixed_assets_ratio) - 1)*100)
 ```
 
 Similarly, intangible assets is important in the same way as it captures the assets acquired mainly for the purpose of long-term growth.
@@ -552,9 +542,13 @@ Similarly, intangible assets is important in the same way as it captures the ass
 ```{r}
 #### Create Intangible Assets Ratio
 Data_panel <- Data_panel %>%
-  mutate(intang_assets_ratio = intang_assets / total_assets,
-         intang_assets_growth_rate = (intang_assets_ratio/lag(intang_assets_ratio) - 1)*100)
+  mutate(intang_assets_ratio = intang_assets / total_assets)
+
+## Create Intangible Assets Growth Rate
+Data_panel <- Data_panel %>% group_by(comp_id) %>%
+  mutate(intang_assets_growth_rate = (intang_assets_ratio/lag(intang_assets_ratio) - 1)*100)
 ```
+
 
 Personnel expenditure is also another important variable. I create Personnel expenditure/ average number of employees. This may capture the talent level of the employees. The change in this ratio is also meaningful.
 
@@ -573,7 +567,7 @@ Data_panel <- Data_panel %>%
 
 # Impute missing values with mean in same industry, year, and similar sales number. And add a flag variable.
 Data_panel <- Data_panel %>%
-  group_by(ind2_cat, year, sales_group) %>%
+  group_by(ind, year, sales_group) %>%
   mutate(emp_avg = ifelse(is.na(labor_avg), mean(labor_avg, na.rm = TRUE), labor_avg),
          flag_miss_emp = as.numeric(is.na(labor_avg))) 
 
@@ -595,29 +589,112 @@ Data_panel <- Data_panel %>%
   mutate(personnel_exp_per_emp = personnel_exp / emp_avg)
 
 ### personnel expenditure per employee growth rate
-Data_panel <- Data_panel %>%
+Data_panel <- Data_panel %>% group_by(comp_id) %>%
   mutate(personnel_exp_per_emp_growth_rate = (personnel_exp_per_emp/lag(personnel_exp_per_emp) - 1)*100)
 ```
 
 ```{r}
 ### Growth in number of employees
-Data_panel <- Data_panel %>%
+Data_panel <- Data_panel %>% group_by(comp_id) %>%
   mutate(emp_growth_rate = (emp_avg/lag(emp_avg) - 1)*100)
+
+## Ungroup
+Data_panel <- Data_panel %>%
+  ungroup()
 ```
 
 
-#### Winsorize variables
+### Dealing with missing values again.
+
 
 ```{r}
 ### Keep only relevant variables for convenience.
-Data_panel_focus <- Data_panel %>% select(comp_id, year, fast_growing, ceo_count, female, inoffice_days, ind2_cat, ind, urban_m, region_m, flag_miss_founded_year, flag_miss_birth_year, growth_rate, age, age_squared, ceo_age_young, ceo_age_middle, gender_m, origin_m, foreign_management, flag_asset_problem, net_profit_margin, inventory_to_sales, fixed_assets_ratio, fixed_assets_growth_rate, intang_assets_ratio, intang_assets_growth_rate, emp_avg, emp_growth_rate, flag_miss_emp, personnel_exp_per_emp, personnel_exp_per_emp_growth_rate, current_ratio_cat, equity_to_assets_cat, flag_personnel_exp_problem, flag_curr_liab_problem, flag_inventories_problem, flag_extra_inc_problem)
+Data_panel_focus <- Data_panel %>% select(comp_id, year, fast_growing, ceo_count, female, inoffice_days, ind2_cat, ind, urban_m, region_m, flag_miss_founded_year, flag_miss_birth_year, growth_rate, age, ceo_age_young, ceo_age_middle, gender_m, origin_m, foreign_management, flag_asset_problem, net_profit_margin, inventory_to_sales, fixed_assets_ratio, fixed_assets_growth_rate, intang_assets_ratio, intang_assets_growth_rate, emp_avg, emp_growth_rate, flag_miss_emp, personnel_exp_per_emp, personnel_exp_per_emp_growth_rate, current_ratio_cat, equity_to_assets_cat, flag_personnel_exp_problem, flag_curr_liab_problem, flag_inventories_problem, flag_extra_inc_problem)
+
+# remove Data_panel
+rm(Data_panel)
+```
+
+
+
+```{r}
+## Inspect NAs in Data_panel showing the most NAs first. Do it again.
+Data_panel_focus %>% ungroup() %>%
+  summarise_all(funs(sum(is.na(.)))) %>% 
+  gather(variable, value) %>% 
+  arrange(desc(value))
+
+```
+
+```{r}
+## This is weird. I think this is because many firms don't have intangible assets, fixed assets, or employees (denominator = 0). Let's check this. 
+
+# count number of firms with intangible assets ratio = 0.
+Data_panel_focus %>% ungroup() %>%
+  filter(intang_assets_ratio == 0) %>%
+  summarise(n = n())
+
+
+# My guess is correct. Hence intang_assets_growth_rate should be 0 for these firms. Note that growth = 0 for these firms is not the same as growth = 0 for firm with already high intangible assets ratio. (We will interact this)
+
+# Replace intang_assets_growth_rate with 0 for firm with lag intang_assets_ratio = 0 and intang_assets_ratio = 0. 
+
+Data_panel_focus <- Data_panel_focus %>% group_by(comp_id) %>%
+  mutate(intang_assets_growth_rate = ifelse(lag(intang_assets_ratio) == 0 & intang_assets_ratio == 0, 0, intang_assets_growth_rate))
 ```
 
 
 ```{r}
-### Let's examine the distribution of the variables first.
+## Let's examine fixed_assets_ratio, count number of firms with fixed_assets_ratio = 0.
+Data_panel_focus %>% ungroup() %>%
+  filter(fixed_assets_ratio == 0) %>%
+  summarise(n = n())
+
+# Replace fixed_assets_growth_rate with 0 for firm with lag fixed_assets_ratio = 0 and fixed_assets_ratio = 0.
+
+Data_panel_focus <- Data_panel_focus %>% group_by(comp_id) %>%
+  mutate(fixed_assets_growth_rate = ifelse(lag(fixed_assets_ratio) == 0 & fixed_assets_ratio == 0, 0, fixed_assets_growth_rate))
 ```
 
+```{r}
+## Let's examine personnel_exp_per_emp, count number of firms with personnel_exp_per_emp = 0.
+Data_panel_focus %>% ungroup() %>%
+  filter(personnel_exp_per_emp == 0) %>%
+  summarise(n = n())
+
+# Replace personnel_exp_per_emp_growth_rate with 0 for firm with lag personnel_exp_per_emp = 0 and personnel_exp_per_emp = 0.
+
+Data_panel_focus <- Data_panel_focus %>% group_by(comp_id) %>%
+  mutate(personnel_exp_per_emp_growth_rate = ifelse(lag(personnel_exp_per_emp) == 0 & personnel_exp_per_emp == 0, 0, personnel_exp_per_emp_growth_rate))
+
+```
+
+
+```{r}
+# count number of firms with employees = 0.
+Data_panel_focus %>% ungroup() %>%
+  filter(emp_avg == 0) %>%
+  summarise(n = n())
+```
+
+
+```{r}
+### Restricting sample and downsampling.
+## Downsample majority class in each year
+# Randomly filter out 70% of the majority class in each year.
+set.seed(20231210)
+Data_toss <- Data_panel_focus %>%
+  group_by(year) %>%
+  filter(fast_growing == FALSE) %>%
+  sample_frac(0.7)
+
+# Toss them out of the original dataset.
+Data_panel_focus <- Data_panel_focus %>%
+  anti_join(Data_toss, by = c("comp_id", "year"))
+
+# remove Data_toss from the environment
+rm(Data_toss)
+```
 
 ```{r}
 ## Restrict Data_panel_focus to 2010-2013
@@ -625,4 +702,40 @@ Data_panel_focus <- Data_panel %>% select(comp_id, year, fast_growing, ceo_count
 Data_panel_focus <- Data_panel_focus %>% 
   filter(year >= 2010 & year <= 2013)
 ```
+
+
+
+```{r}
+## Inspect NAs in Data_panel showing the most NAs first. Do it again.
+Data_panel_focus %>% ungroup() %>%
+  summarise_all(funs(sum(is.na(.)))) %>% 
+  gather(variable, value) %>% 
+  arrange(desc(value))
+```
+
+
+#### Winsorize variables
+
+```{r}
+### Let's examine the distribution of the variables first.
+## Let's plot inventory_to_sales
+Data_panel_focus %>%
+  ggplot(aes(x = inventory_to_sales)) +
+  geom_histogram() +
+  labs(title = "Distribution of Inventory-to-Sales Ratio",
+       x = "Inventory-to-Sales Ratio",
+       y = "Count") + xlim(0, 1.5) + ylim(0, 15000)
+```
+
+```{r}
+## Let's plot net_profit_margin
+Data_panel_focus %>%
+  ggplot(aes(x = net_profit_margin)) +
+  geom_histogram() +
+  labs(title = "Distribution of Net Profit Margin",
+       x = "Net Profit Margin",
+       y = "Count") + xlim(-2, 2) + ylim(0, 15000)
+```
+
+
 
