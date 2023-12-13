@@ -722,7 +722,17 @@ Data_panel_focus %>%
        x = "Inventory-to-Sales Ratio",
        y = "Count") + xlim(0, 1.5) + ylim(0, 7500)
 ```
-There's a few outliers. I winsorize at 1.00
+There's a few outliers. I winsorize at 1.00.
+
+```{r}
+## Winsorize inventory_to_sales at 1.00. Create a flag variable.
+
+Data_panel_focus <- Data_panel_focus %>% 
+  mutate(inventory_to_sales_flag = ifelse(inventory_to_sales > 1.00, 1, 0),
+         inventory_to_sales = ifelse(inventory_to_sales > 1.00, 1.00, inventory_to_sales))
+
+
+```
 
 
 ```{r}
@@ -733,6 +743,20 @@ Data_panel_focus %>%
   labs(title = "Distribution of Net Profit Margin",
        x = "Net Profit Margin",
        y = "Count") + xlim(-3, 2) + ylim(0, 10000)
+```
+
+Winsorize at -1.50 and 0.80.
+
+```{r}
+## Winsorize net_profit_margin at -1.50 and 0.80. Create two flag variables.
+
+Data_panel_focus <- Data_panel_focus %>% 
+  mutate(net_profit_margin_flag_low = ifelse(net_profit_margin < -1.50, 1, 0),
+         net_profit_margin_flag_high = ifelse(net_profit_margin > 0.80, 1, 0),
+         net_profit_margin = ifelse(net_profit_margin < -1.50, -1.50, net_profit_margin),
+         net_profit_margin = ifelse(net_profit_margin > 0.80, 0.80, net_profit_margin))
+
+
 ```
 
 
@@ -746,6 +770,7 @@ Data_panel_focus %>%
        y = "Count") + xlim(0, 1.5) + ylim(0, 7500)
 ```
 
+Leave it as it is.
 
 ```{r}
 ## Let's plot fixed_assets_growth_rate
@@ -757,6 +782,9 @@ Data_panel_focus %>%
        y = "Count") + xlim(-150, 150) + ylim(0, 5000)
 ```
 
+Catagorize into 5 groups: -100%, -99% to -50%, -49% to 0%, 1% to 50%, > 50%.
+
+
 
 ```{r}
 ## Let's plot intang_assets_ratio
@@ -765,10 +793,12 @@ Data_panel_focus %>%
   geom_histogram(binwidth = 0.05) +
   labs(title = "Distribution of Intangible Assets Ratio",
        x = "Intangible Assets Ratio",
-       y = "Count") + xlim(0, 1) + ylim(0, 7500)
+       y = "Count") + xlim(0, 1) + ylim(0, 3000)
+
 
 ```
 
+Leave it as it is.
 
 ```{r}
 ## Let's plot intang_assets_growth_rate
@@ -777,9 +807,9 @@ Data_panel_focus %>%
   geom_histogram(binwidth = 5) +
   labs(title = "Distribution of Intangible Assets Growth Rate",
        x = "Intangible Assets Growth Rate",
-       y = "Count") + xlim(-150, 150) + ylim(0, 5000)
+       y = "Count") + xlim(-110, 150) + ylim(0, 5000)
 ```
-
+Catagorize into 5 groups: -100%, -99% to -50%, -49% to 0%, 1% to 50%, > 50%.
 
 ```{r}
 ## Let's plot emp_growth_rate
@@ -792,6 +822,8 @@ Data_panel_focus %>%
 
 ```
 
+Leave it as it is.
+
 ```{r}
 ## Let's plot personnel_exp_per_emp
 Data_panel_focus %>%
@@ -801,7 +833,7 @@ Data_panel_focus %>%
        x = "Personnel Expense per Employee",
        y = "Count") + xlim(0,200000) + ylim(0, 7500)
 ```
-
+Leave it as it is.
 
 ```{r}
 ## Let's plot personnel_exp_per_emp_growth_rate
@@ -813,7 +845,7 @@ Data_panel_focus %>%
        y = "Count") + xlim(-150, 150) + ylim(0, 5000)
 
 ```
-
+Catagorize into 5 groups: -100%, -99% to -50%, -49% to 0%, 1% to 50%, > 50%.
 
 ## Downsampling
 
