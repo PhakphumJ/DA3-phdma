@@ -782,8 +782,27 @@ Data_panel_focus %>%
        y = "Count") + xlim(-150, 150) + ylim(0, 5000)
 ```
 
-Catagorize into 5 groups: -100%, -99% to -50%, -49% to 0%, 1% to 50%, > 50%.
+Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
 
+```{r}
+## Catagorize fixed_assets_growth_rate into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
+
+Data_panel_focus <- Data_panel_focus %>%
+  mutate(fixed_assets_growth_rate_cat = case_when(fixed_assets_growth_rate == -100 ~ 1,
+                                                   fixed_assets_growth_rate > -100 & fixed_assets_growth_rate <= -50 ~ 2,
+                                                   fixed_assets_growth_rate > -50 & fixed_assets_growth_rate <= 0 ~ 3,
+                                                   fixed_assets_growth_rate > 0 & fixed_assets_growth_rate <= 50 ~ 4,
+                                                   fixed_assets_growth_rate > 50 ~ 5))
+
+# make it a factor.
+Data_panel_focus <- Data_panel_focus %>%
+  mutate(fixed_assets_growth_rate_cat = factor(fixed_assets_growth_rate_cat, levels = c(1,2,3,4,5), labels = c("-100%", "-99% to -50%", "-50% to 0%", "0% to 50%", "> 50%")))
+
+# drop fixed_assets_growth_rate
+Data_panel_focus <- Data_panel_focus %>%
+  select(-fixed_assets_growth_rate)
+
+```
 
 
 ```{r}
@@ -809,7 +828,28 @@ Data_panel_focus %>%
        x = "Intangible Assets Growth Rate",
        y = "Count") + xlim(-110, 150) + ylim(0, 5000)
 ```
-Catagorize into 5 groups: -100%, -99% to -50%, -49% to 0%, 1% to 50%, > 50%.
+Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
+
+```{r}
+## Catagorize intang_assets_growth_rate into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
+
+Data_panel_focus <- Data_panel_focus %>%
+  mutate(intang_assets_growth_rate_cat = case_when(intang_assets_growth_rate == -100 ~ 1,
+                                                   intang_assets_growth_rate > -100 & intang_assets_growth_rate <= -50 ~ 2,
+                                                   intang_assets_growth_rate > -50 & intang_assets_growth_rate <= 0 ~ 3,
+                                                   intang_assets_growth_rate > 0 & intang_assets_growth_rate <= 50 ~ 4,
+                                                   intang_assets_growth_rate > 50 ~ 5))
+
+# make it a factor.
+Data_panel_focus <- Data_panel_focus %>%
+  mutate(intang_assets_growth_rate_cat = factor(intang_assets_growth_rate_cat, levels = c(1,2,3,4,5), labels = c("-100%", "-99% to -50%", "-50% to 0%", "0% to 50%", "> 50%")))
+
+# drop intang_assets_growth_rate
+Data_panel_focus <- Data_panel_focus %>%
+  select(-intang_assets_growth_rate)
+
+```
+
 
 ```{r}
 ## Let's plot emp_growth_rate
@@ -845,7 +885,28 @@ Data_panel_focus %>%
        y = "Count") + xlim(-150, 150) + ylim(0, 5000)
 
 ```
-Catagorize into 5 groups: -100%, -99% to -50%, -49% to 0%, 1% to 50%, > 50%.
+Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
+
+```{r}
+## Catagorize personnel_exp_per_emp_growth_rate into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
+
+Data_panel_focus <- Data_panel_focus %>%
+  mutate(personnel_exp_per_emp_growth_rate_cat = case_when(personnel_exp_per_emp_growth_rate == -100 ~ 1,
+                                                   personnel_exp_per_emp_growth_rate > -100 & personnel_exp_per_emp_growth_rate <= -50 ~ 2,
+                                                   personnel_exp_per_emp_growth_rate > -50 & personnel_exp_per_emp_growth_rate <= 0 ~ 3,
+                                                   personnel_exp_per_emp_growth_rate > 0 & personnel_exp_per_emp_growth_rate <= 50 ~ 4,
+                                                   personnel_exp_per_emp_growth_rate > 50 ~ 5))
+
+# make it a factor.
+Data_panel_focus <- Data_panel_focus %>%
+  mutate(personnel_exp_per_emp_growth_rate_cat = factor(personnel_exp_per_emp_growth_rate_cat, levels = c(1,2,3,4,5), labels = c("-100%", "-99% to -50%", "-50% to 0%", "0% to 50%", "> 50%")))
+
+# drop personnel_exp_per_emp_growth_rate
+Data_panel_focus <- Data_panel_focus %>%
+  select(-personnel_exp_per_emp_growth_rate)
+
+```
+
 
 ## Downsampling
 
