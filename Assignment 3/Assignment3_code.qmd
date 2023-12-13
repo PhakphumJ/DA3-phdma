@@ -396,6 +396,7 @@ Data_panel <- Data_panel %>%
 
 ```
 
+
 ```{r}
 ### create foreign_management variable (binary)
 Data_panel <- Data_panel %>%
@@ -433,26 +434,32 @@ Data_panel <- Data_panel %>%
   mutate(net_profit_margin = net_profit / total_assets)
 ```
 
+```{r}
+## Efficiency Ratio: Inventory-to-Sales Ratio. How well they manage their inventory.
+Data_panel <- Data_panel %>%
+  mutate(inventory_to_sales = inventory / sales)
+```
+
+
 
 Fixed assets is important as it captures the capital intensity of the firm. The change in fixed assets is also important as it captures the investment activity of the firm. 
 ```{r}
 #### Create Fixed Assets Ratio
 Data_panel <- Data_panel %>%
   mutate(fixed_assets_ratio = fixed_assets / total_assets,
-         fixed_assets_growth_rate = (fixed_assets/lag(fixed_assets) - 1)*100)
+         fixed_assets_growth_rate = (fixed_assets_ratio/lag(fixed_assets_ratio) - 1)*100)
 ```
 
-Similary, intangible assets is important in the same way as it captures the assets acquired mainly for the purpose of long-term growth.
+Similarly, intangible assets is important in the same way as it captures the assets acquired mainly for the purpose of long-term growth.
 
 ```{r}
 #### Create Intangible Assets Ratio
 Data_panel <- Data_panel %>%
   mutate(intang_assets_ratio = intang_assets / total_assets,
-         intang_assets_growth_rate = (intang_assets/lag(intang_assets) - 1)*100)
+         intang_assets_growth_rate = (intang_assets_ratio/lag(intang_assets_ratio) - 1)*100)
 ```
 
-Personnel expenditure is also another important variable. 
-
+Personnel expenditure is also another important variable. I create Personnel expenditure/ average number of employees. This may capture the talent level of the employees. The change in this ratio is also meaningful.
 
 
 ```{r}
@@ -470,10 +477,25 @@ Data_panel <- Data_panel %>%
   mutate(emp_avg = ifelse(is.na(emp), mean(emp, na.rm = TRUE), emp),
          flag_miss_emp = as.numeric(is.na(emp)))
 
-
+# drop -labor_avg
 Data_panel <- Data_panel %>%
   select(-labor_avg)
+
+# drop sales_group
+Data_panel <- Data_panel %>%
+  select(-sales_group)
 ```
+
+```{r}
+### personnel expenditure per employee
+Data_panel <- Data_panel %>%
+  mutate(personnel_exp_per_emp = personnel_exp / emp_avg)
+
+### personnel expenditure per employee growth rate
+Data_panel <- Data_panel %>%
+  mutate(personnel_exp_per_emp_growth_rate = (personnel_exp_per_emp/lag(personnel_exp_per_emp) - 1)*100)
+```
+
 
 
 ```{r}
