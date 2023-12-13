@@ -388,7 +388,7 @@ Data_panel <- Data_panel %>%
 ### create factors variables urban_m, gender_m, region_m.
 Data_panel <- Data_panel %>%
   mutate(gender_m = factor(gender, levels = c("female", "male", "mix")),
-         region_m = factor(region_m, levels = c("Central", "East", "West")), urban_m = factor(urban_m, levels = c(1,2,3)), origin_m = factor(origin, levels = c("Foreign", "Foreign", "mix")))
+         region_m = factor(region_m, levels = c("Central", "East", "West")), urban_m = factor(urban_m, levels = c(1,2,3)), origin_m = factor(origin, levels = c("Foreign", "Domestic", "mix")))
 
 # drop gender
 Data_panel <- Data_panel %>% 
@@ -397,14 +397,6 @@ Data_panel <- Data_panel %>%
 # drop origin
 Data_panel <- Data_panel %>% 
   select(-origin)
-```
-
-
-```{r}
-## Let's examine the variable origin.
-Data_panel %>% 
-  group_by(year) %>%
-  count(origin)
 ```
 
 
@@ -443,13 +435,13 @@ Data_panel <- Data_panel %>%
 #### Create Financial Ratios 
 ## Profitability Ratio: Net Profit Margin.
 Data_panel <- Data_panel %>%
-  mutate(net_profit_margin = net_profit / total_assets)
+  mutate(net_profit_margin = profit_loss_year / total_assets)
 ```
 
 ```{r}
 ## Efficiency Ratio: Inventory-to-Sales Ratio. How well they manage their inventory.
 Data_panel <- Data_panel %>%
-  mutate(inventory_to_sales = inventory / sales)
+  mutate(inventory_to_sales = inventories / sales)
 ```
 
 
@@ -473,6 +465,9 @@ Data_panel <- Data_panel %>%
 
 Personnel expenditure is also another important variable. I create Personnel expenditure/ average number of employees. This may capture the talent level of the employees. The change in this ratio is also meaningful.
 
+The growth of the number of employees is also potentially important. I create the growth rate of the number of employees.
+
+
 
 ```{r}
 
@@ -486,8 +481,11 @@ Data_panel <- Data_panel %>%
 # Impute missing values with mean in same industry, year, and similar sales number. And add a flag variable.
 Data_panel <- Data_panel %>%
   group_by(ind2_cat, year, sales_group) %>%
-  mutate(emp_avg = ifelse(is.na(emp), mean(emp, na.rm = TRUE), emp),
-         flag_miss_emp = as.numeric(is.na(emp)))
+  mutate(emp_avg = ifelse(is.na(labor_avg), mean(labor_avg, na.rm = TRUE), labor_avg),
+         flag_miss_emp = as.numeric(is.na(labor_avg))) 
+
+Data_panel <- Data_panel %>%
+  ungroup()
 
 # drop -labor_avg
 Data_panel <- Data_panel %>%
@@ -508,12 +506,18 @@ Data_panel <- Data_panel %>%
   mutate(personnel_exp_per_emp_growth_rate = (personnel_exp_per_emp/lag(personnel_exp_per_emp) - 1)*100)
 ```
 
+```{r}
+### Growth in number of employees
+Data_panel <- Data_panel %>%
+  mutate(emp_growth_rate = (emp_avg/lag(emp_avg) - 1)*100)
+```
+
 
 #### Winsorize variables
 
 ```{r}
-### Keep only relevant variables for convinence.
-Data_panel <- Data_panel %>% select(comp_id, year, ceo_count, female, inoffice_days, )
+### Keep only relevant variables for convenience.
+Data_panel <- Data_panel %>% select(comp_id, year, ceo_count, female, inoffice_days, ind, urban_m, region_m, )
 ```
 
 
