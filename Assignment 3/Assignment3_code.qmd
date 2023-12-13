@@ -117,18 +117,6 @@ Data_panel <- Data_panel %>%
 
 
 ```{r}
-
-### number emp, very noisy measure
-## Impute missing values with mean and add a flag variable
-Data_panel <- Data_panel %>%
-  mutate(labor_avg_mod = ifelse(is.na(labor_avg), mean(labor_avg, na.rm = TRUE), labor_avg),
-         flag_miss_labor_avg = as.numeric(is.na(labor_avg)))
-
-Data_panel <- Data_panel %>%
-  select(-labor_avg)
-```
-
-```{r}
 ### Imputing missing values in founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin.
 
 ## Impute missing values in founded_year with the lead year.
@@ -418,6 +406,74 @@ Data_panel <- Data_panel %>%
   select(-foreign)
 ```
 
+```{r}
+### Create Total Assets
+
+# assets can't be negative. Change them to 0 and add a flag.
+Data_panel <-Data_panel  %>%
+  mutate(flag_asset_problem=ifelse(intang_assets<0 | curr_assets<0 | fixed_assets<0,1,0  ))
+table(Data_panel$flag_asset_problem)
+
+Data_panel <- Data_panel %>%
+  mutate(intang_assets = ifelse(intang_assets < 0, 0, intang_assets),
+         curr_assets = ifelse(curr_assets < 0, 0, curr_assets),
+         fixed_assets = ifelse(fixed_assets < 0, 0, fixed_assets))
+
+# generate total assets
+Data_panel <- Data_panel %>%
+  mutate(total_assets = intang_assets + curr_assets + fixed_assets)
+
+
+```
+
+```{r}
+#### Create Financial Ratios 
+## Profitability Ratio: Net Profit Margin.
+Data_panel <- Data_panel %>%
+  mutate(net_profit_margin = net_profit / total_assets)
+```
+
+
+Fixed assets is important as it captures the capital intensity of the firm. The change in fixed assets is also important as it captures the investment activity of the firm. 
+```{r}
+#### Create Fixed Assets Ratio
+Data_panel <- Data_panel %>%
+  mutate(fixed_assets_ratio = fixed_assets / total_assets,
+         fixed_assets_growth_rate = (fixed_assets/lag(fixed_assets) - 1)*100)
+```
+
+Similary, intangible assets is important in the same way as it captures the assets acquired mainly for the purpose of long-term growth.
+
+```{r}
+#### Create Intangible Assets Ratio
+Data_panel <- Data_panel %>%
+  mutate(intang_assets_ratio = intang_assets / total_assets,
+         intang_assets_growth_rate = (intang_assets/lag(intang_assets) - 1)*100)
+```
+
+Personnel expenditure is also another important variable. 
+
+
+
+```{r}
+
+### number emp, very noisy measure
+## Impute missing values with mean in same industry and similar sales number. And add a flag variable.
+
+# Seperate sales into 5 groups.
+Data_panel <- Data_panel %>%
+  mutate(sales_group = ntile(sales, 5))
+
+# Impute missing values with mean in same industry, year, and similar sales number. And add a flag variable.
+Data_panel <- Data_panel %>%
+  group_by(ind2_cat, year, sales_group) %>%
+  mutate(emp_avg = ifelse(is.na(emp), mean(emp, na.rm = TRUE), emp),
+         flag_miss_emp = as.numeric(is.na(emp)))
+
+
+Data_panel <- Data_panel %>%
+  select(-labor_avg)
+```
 
 
 ```{r}
