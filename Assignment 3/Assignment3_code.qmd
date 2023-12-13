@@ -388,13 +388,25 @@ Data_panel <- Data_panel %>%
 ### create factors variables urban_m, gender_m, region_m.
 Data_panel <- Data_panel %>%
   mutate(gender_m = factor(gender, levels = c("female", "male", "mix")),
-         region_m = factor(region_m, levels = c("Central", "East", "West")), urban_m = factor(urban_m, levels = c(1,2,3)))
+         region_m = factor(region_m, levels = c("Central", "East", "West")), urban_m = factor(urban_m, levels = c(1,2,3)), origin_m = factor(origin, levels = c("Foreign", "Foreign", "mix")))
 
 # drop gender
 Data_panel <- Data_panel %>% 
   select(-gender)
 
+# drop origin
+Data_panel <- Data_panel %>% 
+  select(-origin)
 ```
+
+
+```{r}
+## Let's examine the variable origin.
+Data_panel %>% 
+  group_by(year) %>%
+  count(origin)
+```
+
 
 
 ```{r}
@@ -496,6 +508,18 @@ Data_panel <- Data_panel %>%
   mutate(personnel_exp_per_emp_growth_rate = (personnel_exp_per_emp/lag(personnel_exp_per_emp) - 1)*100)
 ```
 
+
+#### Winsorize variables
+
+```{r}
+### Keep only relevant variables for convinence.
+Data_panel <- Data_panel %>% select(comp_id, year, ceo_count, female, inoffice_days, )
+```
+
+
+```{r}
+### Let's examine the distribution of the variables first.
+```
 
 
 ```{r}
