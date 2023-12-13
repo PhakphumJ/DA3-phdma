@@ -366,6 +366,10 @@ Data_panel <- Data_panel %>%
 ## Drop ceo_age
 Data_panel <- Data_panel %>%
   select(-ceo_age)
+
+## Drop ceo_age_old
+Data_panel <- Data_panel %>%
+  select(-ceo_age_old)
 ```
 
 ```{r}
@@ -437,6 +441,56 @@ Data_panel <- Data_panel %>%
 Data_panel <- Data_panel %>%
   mutate(net_profit_margin = profit_loss_year / total_assets)
 ```
+
+```{r}
+## Current Ratio: Current Assets-to-Current Liabilities Ratio. How well they manage their short-term liquidity.
+Data_panel <- Data_panel %>%
+  mutate(current_ratio = curr_assets / curr_liabilities)
+
+# Divide it into 5 categories. 0-1.1, 1.1-2.0, 2.0-4.0, 4.0-6.0, > 6.0 (factor)
+Data_panel <- Data_panel %>%
+  mutate(current_ratio_cat = case_when(current_ratio <= 1.1 ~ 1,
+                                       current_ratio > 1.1 & current_ratio <= 2.0 ~ 2,
+                                       current_ratio > 2.0 & current_ratio <= 4.0 ~ 3,
+                                       current_ratio > 4.0 & current_ratio <= 6.0 ~ 4,
+                                       current_ratio > 6.0 ~ 5))
+
+# make it a factor.
+Data_panel <- Data_panel %>%
+  mutate(current_ratio_cat = factor(current_ratio_cat, levels = c(1,2,3,4,5)), labels = c("< 1.1", "1.1-2.0", "2.0-4.0", "4.0-6.0", "> 6.0"))
+
+# drop current_ratio
+Data_panel <- Data_panel %>%
+  select(-current_ratio)
+```
+
+
+```{r}
+### Solvency Ratio: Equity-to-Assets Ratio.
+## Create the variable
+Data_panel <- Data_panel %>%
+  mutate(equity_to_assets = share_eq / total_assets)
+
+## Divide it into 6 categories. < 0.0, 0.0-0.1, 0.1-0.2, 0.2-0.4, 0.4-0.6, > 0.6 (factor)
+Data_panel <- Data_panel %>%
+  mutate(equity_to_assets_cat = case_when(equity_to_assets <= 0.0 ~ 1,
+                                          equity_to_assets > 0.0 & equity_to_assets <= 0.1 ~ 2,
+                                          equity_to_assets > 0.1 & equity_to_assets <= 0.2 ~ 3,
+                                          equity_to_assets > 0.2 & equity_to_assets <= 0.4 ~ 4,
+                                          equity_to_assets > 0.4 & equity_to_assets <= 0.6 ~ 5,
+                                          equity_to_assets > 0.6 ~ 6))
+
+# make it a factor.
+Data_panel <- Data_panel %>%
+  mutate(equity_to_assets_cat = factor(equity_to_assets_cat, levels = c(1,2,3,4,5,6)), labels = c("< 0.0", "0.0-0.1", "0.1-0.2", "0.2-0.4", "0.4-0.6", "> 0.6"))
+
+# drop equity_to_assets
+Data_panel <- Data_panel %>%
+  select(-equity_to_assets)
+
+```
+
+
 
 ```{r}
 ## Efficiency Ratio: Inventory-to-Sales Ratio. How well they manage their inventory.
@@ -517,7 +571,7 @@ Data_panel <- Data_panel %>%
 
 ```{r}
 ### Keep only relevant variables for convenience.
-Data_panel <- Data_panel %>% select(comp_id, year, ceo_count, female, inoffice_days, ind, urban_m, region_m, )
+Data_panel <- Data_panel %>% select(comp_id, year, fast_growing, ceo_count, female, inoffice_days, ind2_cat, ind, urban_m, region_m, flag_miss_founded_year, flag_miss_birth_year, growth_rate, age, age_squared, ceo_age_young, ceo_age_middle, gender_m, origin_m, foreign_management, flag_asset_problem, net_profit_margin, inventory_to_sales, fixed_assets_ratio, fixed_assets_growth_rate, intang_assets_ratio, intang_assets_growth_rate, emp_avg, emp_growth_rate, flag_miss_emp, personnel_exp_per_emp, personnel_exp_per_emp_growth_rate)
 ```
 
 
