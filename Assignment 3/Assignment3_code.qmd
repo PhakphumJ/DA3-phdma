@@ -445,7 +445,7 @@ Data_panel <- Data_panel %>%
 ```{r}
 ## Current Ratio: Current Assets-to-Current Liabilities Ratio. How well they manage their short-term liquidity.
 Data_panel <- Data_panel %>%
-  mutate(current_ratio = curr_assets / curr_liabilities)
+  mutate(current_ratio = curr_assets / curr_liab)
 
 # Divide it into 5 categories. 0-1.1, 1.1-2.0, 2.0-4.0, 4.0-6.0, > 6.0 (factor)
 Data_panel <- Data_panel %>%
@@ -457,7 +457,7 @@ Data_panel <- Data_panel %>%
 
 # make it a factor.
 Data_panel <- Data_panel %>%
-  mutate(current_ratio_cat = factor(current_ratio_cat, levels = c(1,2,3,4,5)), labels = c("< 1.1", "1.1-2.0", "2.0-4.0", "4.0-6.0", "> 6.0"))
+  mutate(current_ratio_cat = factor(current_ratio_cat, levels = c(1,2,3,4,5) , labels = c("< 1.1", "1.1-2.0", "2.0-4.0", "4.0-6.0", "> 6.0")))
 
 # drop current_ratio
 Data_panel <- Data_panel %>%
@@ -482,14 +482,13 @@ Data_panel <- Data_panel %>%
 
 # make it a factor.
 Data_panel <- Data_panel %>%
-  mutate(equity_to_assets_cat = factor(equity_to_assets_cat, levels = c(1,2,3,4,5,6)), labels = c("< 0.0", "0.0-0.1", "0.1-0.2", "0.2-0.4", "0.4-0.6", "> 0.6"))
+  mutate(equity_to_assets_cat = factor(equity_to_assets_cat, levels = c(1,2,3,4,5,6), labels = c("< 0.0", "0.0-0.1", "0.1-0.2", "0.2-0.4", "0.4-0.6", "> 0.6")))
 
 # drop equity_to_assets
 Data_panel <- Data_panel %>%
   select(-equity_to_assets)
 
 ```
-
 
 
 ```{r}
