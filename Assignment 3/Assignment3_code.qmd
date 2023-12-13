@@ -918,31 +918,48 @@ Data_panel_focus %>%
   count(fast_growing)
 ```
 
+The ideal way to build and select the model is to build and evaluate the model within each year. However, due to time constraint and simplicity, I use data only from 2012 to build and choose the model. 2012 is the year with the most observations and the class is also the most balanced. 
+
+```{r}
+## Use only data from 2012.
+Data_2012 <- Data_panel_focus %>%
+  filter(year == 2012)
+
+# remove Data_panel_focus from the environment
+rm(Data_panel_focus)
+```
+
+
 ```{r}
 ### Restricting sample and downsampling.
 ## Downsample majority class in each year
-# Randomly filter out 70% of the majority class in each year.
+# Randomly filter out 55% of the majority class in each year.
 set.seed(20231210)
-Data_toss <- Data_panel_focus %>%
+Data_toss <- Data_2012 %>%
   group_by(year) %>%
   filter(fast_growing == FALSE) %>%
-  sample_frac(0.7)
+  sample_frac(0.55)
 
 # Toss them out of the original dataset.
-Data_panel_focus <- Data_panel_focus %>%
+Data_2012 <- Data_2012 %>%
   anti_join(Data_toss, by = c("comp_id", "year"))
 
 # remove Data_toss from the environment
 rm(Data_toss)
+
+# drop comp_id and year.
+Data_2012 <- Data_2012 %>% ungroup()
+
+Data_2012 <- Data_2012 %>%
+  select(-comp_id, -year)
 ```
 
 ```{r}
 ## Lets' examine fast_growing again
-Data_panel_focus %>% 
-  group_by(year) %>%
+Data_2012 %>% 
   count(fast_growing)
 ```
 
 
-
+## Building Models
 
