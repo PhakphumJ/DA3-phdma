@@ -717,32 +717,100 @@ Data_panel_focus <- Data_panel_focus %>%
 ## Let's plot inventory_to_sales
 Data_panel_focus %>%
   ggplot(aes(x = inventory_to_sales)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 0.05) +
   labs(title = "Distribution of Inventory-to-Sales Ratio",
        x = "Inventory-to-Sales Ratio",
-       y = "Count") + xlim(0, 1.5) + ylim(0, 10000)
+       y = "Count") + xlim(0, 1.5) + ylim(0, 7500)
 ```
 
 ```{r}
 ## Let's plot net_profit_margin
 Data_panel_focus %>%
   ggplot(aes(x = net_profit_margin)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 0.1) +
   labs(title = "Distribution of Net Profit Margin",
        x = "Net Profit Margin",
-       y = "Count") + xlim(-2, 2) + ylim(0, 10000)
+       y = "Count") + xlim(-3, 2) + ylim(0, 10000)
 ```
+
+
+```{r}
+## Let's plot fixed_assets_ratio
+Data_panel_focus %>%
+  ggplot(aes(x = fixed_assets_ratio)) +
+  geom_histogram(binwidth = 0.05) +
+  labs(title = "Distribution of Fixed Assets Ratio",
+       x = "Fixed Assets Ratio",
+       y = "Count") + xlim(0, 1.5) + ylim(0, 7500)
+```
+
 
 ```{r}
 ## Let's plot fixed_assets_growth_rate
 Data_panel_focus %>%
   ggplot(aes(x = fixed_assets_growth_rate)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 5) +
   labs(title = "Distribution of Fixed Assets Growth Rate",
        x = "Fixed Assets Growth Rate",
-       y = "Count") + xlim(-75, 75) + ylim(0, 5000)
+       y = "Count") + xlim(-150, 150) + ylim(0, 5000)
 ```
 
+
+```{r}
+## Let's plot intang_assets_ratio
+Data_panel_focus %>%
+  ggplot(aes(x = intang_assets_ratio)) +
+  geom_histogram(binwidth = 0.05) +
+  labs(title = "Distribution of Intangible Assets Ratio",
+       x = "Intangible Assets Ratio",
+       y = "Count") + xlim(0, 1) + ylim(0, 7500)
+
+```
+
+
+```{r}
+## Let's plot intang_assets_growth_rate
+Data_panel_focus %>%
+  ggplot(aes(x = intang_assets_growth_rate)) +
+  geom_histogram(binwidth = 5) +
+  labs(title = "Distribution of Intangible Assets Growth Rate",
+       x = "Intangible Assets Growth Rate",
+       y = "Count") + xlim(-150, 150) + ylim(0, 5000)
+```
+
+
+```{r}
+## Let's plot emp_growth_rate
+Data_panel_focus %>%
+  ggplot(aes(x = emp_growth_rate)) +
+  geom_histogram(binwidth = 5) +
+  labs(title = "Distribution of Employee Growth Rate",
+       x = "Employee Growth Rate",
+       y = "Count") + xlim(-150, 150) + ylim(0, 5000)
+
+```
+
+```{r}
+## Let's plot personnel_exp_per_emp
+Data_panel_focus %>%
+  ggplot(aes(x = personnel_exp_per_emp)) +
+  geom_histogram(binwidth = 5000) +
+  labs(title = "Distribution of Personnel Expense per Employee",
+       x = "Personnel Expense per Employee",
+       y = "Count") + xlim(0,200000) + ylim(0, 7500)
+```
+
+
+```{r}
+## Let's plot personnel_exp_per_emp_growth_rate
+Data_panel_focus %>%
+  ggplot(aes(x = personnel_exp_per_emp_growth_rate)) +
+  geom_histogram(binwidth = 5) +
+  labs(title = "Distribution of Personnel Expense per Employee Growth Rate",
+       x = "Personnel Expense per Employee Growth Rate",
+       y = "Count") + xlim(-150, 150) + ylim(0, 5000)
+
+```
 
 
 ## Downsampling
