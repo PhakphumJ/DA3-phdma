@@ -2062,7 +2062,7 @@ kable(RMSE_AUC_expected_loss, digits = 4, align = "c") %>%
 
 We divide data into two dataset. First one contains only fimrs in manufacturing sector and the second one contains firms in all other sectors. *ind* = 2 is manufacturing sector. *ind* = 3 is service sector. sector.
 
-I pick the logistic regression model 2 as to carry out classisification in both datasets as it is the model that minimize the expected loss in Task 1. 
+I pick the logistic regression model 2 to carry out classification in both datasets as it is the model that minimize the expected loss in Task 1. 
 
 The expected loss and the optimal threshold are the same as before. 
 
