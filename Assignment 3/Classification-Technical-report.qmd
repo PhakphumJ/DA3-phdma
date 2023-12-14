@@ -1,0 +1,218 @@
+---
+title: "Fast Growing Firms Classification - Technical Report"
+author: "Phakphum Jatupitpornchan"
+format: pdf
+execute: 
+  echo: false
+  warning: false
+---
+```{r}
+#| warning: false
+#| echo: false
+### Use packages, Import Data
+rm(list=ls())
+# Import Libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(weights)
+library(caret)
+library(kableExtra)
+library(tidyr)
+library(fastDummies)
+library(groupdata2)
+library(glmnet)
+library(pROC)
+library(randomForest)
+
+# Set Working Directory
+
+setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction with Machine Learning/Assignment/DA3-phdma/Assignment 3")
+
+# Import Data
+
+Data_panel <- read_csv("cs_bisnode_panel.csv")
+
+```
+
+
+In most countries, the government provides support to entrepreneurs in the hope that they will grow and create jobs. In most cases, small and medium enterprises (SMEs) are the main target of the support. However, it might not be optimal to provide support to all SMEs equally. For example, size-dependent policies are found to create resource misallocation and reduce aggregate productivity and many countries. In many developing countries, there is a phenomenon of "zombie firms" which are firms that are not productive enough to survive in the market but are still alive due to government support or by taking on new debts. Therefore, it might be more beneficial to focus on SMEs that have the potential to grow to be high-productive firms.
+
+# Task 1
+## Label Engineering
+
+The usual variables used to create a growth indicators in the literature are sales, employment, profit, market share, and output. Among these, sales, profit, and employment are variables that are easiest to observe and most likely to be available in any setting. 
+
+Drawing from the motivation above, profit is the variable that comes closest to the concept of productivity. However, there is a technical problem with using profit to create growth indicator since profit can be negative. When it was negative, the calculate growth rate will be negative as well even when the firm becomes profitable. 
+
+Therefore, to circumvent this technical problem, I use the ratio of sales to total cost instead. The gap between sales and total cost is the profit. Therefore, this ratio can capture the same information as profit. (Total cost data is not provided, but by definition total cost = sales + extra income - net profit. extra income are corrected to only have positive values first.)
+
+The next question is how long should the firm achieve the outstanding growth rate to be considered as a fast-growing firm. In this project, a firm has to achieve an **outstanding annual growth rate** in the sales-cost-ratio for the next 2 consecutive years to be considered as a fast-growing firm. This is because I want to focus on firms that are resilient and their idea is not just a fad.
+
+By restricting to firms that must have outstanding growth rate for 2 consecutive years as opposed to use the growth rate over two years, I impose that they must exhibit the prospect of "continually growing". Firms that grow fast in the first year but slow down in the second year might already be close to their potential and do not need the support from government. However, by doing so, I also discard firms did not perform exceptionally well in the first year but turn around and find their success in the second year. 
+
+**"Outstanding growth rate"** is defined as having the highest 25% growth rate in that year ($4_{th}$ quartile). This is relative growth rate to the economy. I use this measure because how well a firm can do is also depend on macroeconomic situation. However, it should be noted that there is no fundamental reason why there should only be 25% of firms that are considered to be great. At the extreme, it is possible that all firms in the economy are excellent or terrible.
+
+In summary, $fast\_growing_{i,t} = 1$ 
+
+when $outstanding\_growth_{i,t+1} = 1$ and $outstanding\_growth_{i,t+2} = 1$. It is 0 otherwise.
+
+## Feature Engineering
+### Feature Selection
+Almost variables in the dataset are used except those with mostly missing values and those that provide similar information to other variables. For example, net income before tax is not used as it captures similar information as the net profit of the company. 
+
+*begin*, *end*, *COGS*, *amort*, *extra_exp*, *extra_profit_loss*, *finished_prod*, *inc_bef_tax*, *material_exp*, *net_dom_sales*, *net_exp_sales*, *subscribed_cap*, *tang_assets*, *balsheet_flag*, *balsheet_length*, *balsheet_notfullyear*, *exit_year*, *nace_main*, *exit_date* are not used. 
+
+The dataset and the data dictionary can be found here: <https://osf.io/b2ft9/>
+
+### Feature Transformation
+Some additional features are created from the original dataset. The main types of new features are financial ratios, growth rates of some created ratios, and additional characteristics of the firm and its CEO. 
+
+Features that are created are the age of CEO, total assets, net profit margin, current ratio, equity-to-assets ratio, inventory-to-sales ratio, fixed assets ratio, intangible assets ratio, personnel expenditure per employee.
+
+Additionally, growth in fixed assets ratio, intangible assets ratio, personnel expenditure per employee and number of employees are also created.
+
+Some of these features are very interesting. For example, the fixed assets ratio is important as it captures the capital intensity of the firm. The change in fixed assets is also important as it captures the investment activity of the firm. Personnel expenditure per employee is interesting as it may capture the quality of the employees.
+
+
+### Deal with Missing Values
+Variables with mostly missing values are dropped. For many variables, their missing values can be imputed. The remaining missing values after imputation are small enough for the observation to be dropped. 
+
+Based, on closer inspection, I found that the missing values in founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin can imputed by looking at the next year. For example:
+
+```{r}
+## Print the value of founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin of firm 1003200.
+
+Data_panel %>% filter(comp_id == 1003200) %>%
+  select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)
+```
+
+However, it is not always the case that the values of these values are the same in each year. Hence, flag variables will be created to indicate that these are imputed.
+
+Similar things can be observed with *birth_year*. It can be imputed by using the value in the next year. For example:
+
+```{r}
+Data_panel %>% filter(comp_id == 1046213) %>%
+  select(comp_id, year, ceo_count, female, birth_year)
+```
+
+However, it is possible that in some firms, CEO may not be the same person in each year. Hence, flag variables will be created to indicate that these are imputed.
+
+Missing values in the number of employees are imputed from the average number of employees in the same industry, same sales quintile, and year. 
+
+
+
+### Winsorization and Simplification
+Some ratios are winsorized to remove outliers. The decision to winsorize is based on the distribution of the variable. Flags are created to indicate whether the variable is winsorized or not.
+
+Some variables are simplified, converting from numeric to categorical. This is because, for some of them, there is a concentration of values at -100%. Another reason is that for some financial ratios, the higher is not necessarily better, e.g., equity to asset ratio. 
+
+
+## Sample Design
+
+By inspecting the class of *fast_growing* variable, it is found that the class is highly imbalanced. There are only a small proportion of fast growing firms. 
+
+The ideal way to build and select the model is to build and evaluate the model within each year. However, due to time constraint and simplicity, I use data only from 2012 to build, choose, and evaluate the model. 2012 is the year with the most observations and the class is also the most balanced.
+
+Downsampling is implemented to balance the class. After, downsampling, fast growing firms account for 10.5% of the sample. The sample is then split into a work set and a hold-out set. 15% of the sample is used as a hold-out set.
+
+## Model Building and Selection
+Three types of models are considered in this exercise, 1) logistic regression, 2) LASSO logistic regression, and 3) random forest. The details of the model building and selection are described in the subsections below.
+
+### Logistic Regression
+Five logistic regression models are built. General financial and economic knowledge is used to build the models. The following are the predictors used in each model.
+
+1. Model 1: The growth rate of sales-to-total cost from 2011 to 2012 is used as the only predictor. This ratio is used to built the outcome variable. This is to see if past performance can predict future performance.
+
+2. Model 2: Model 1 + variables capturing how well the firms are doing in terms of profitability, liquidity, and solvency. These are the most frequently used financial ratios.
+
+3. Model 3: Model 2 + variables capturing labors, capital, and the past attempt to expand these inputs. These variables may capture the aspiration of the firms to grow.
+
+4. Model 4: Model 3 + industry and interaction terms of the included variables with industry variable. These are important since each industry has different characteristics.
+
+5. Model 5: Model 4. + the remaining variables.
+
+For each model, RMSE and AUC are calculated from the 5-fold cross-validation. The model with the lowest RMSE and highest AUC is Model 2. 
+
+
+### LASSO Logistic Regression
+Variables used for LASSO logistic regression are all variables in the selected set of variables, and interaction terms between industry and all variables. 5-fold cross-validation is used to select the best value of $\lambda$. The optimal $\lambda = 0.0112$
+
+### Random Forest
+Next, I build a random forest model. 5-fold cross-validation is used to tune the parameters
+(mtry: Number of variables randomly sampled as candidates at each split). To save computation
+time, I only use 150 trees. mtry = 12 produces the lowest RMSE.
+
+
+### Prediction Performance and Expected Loss in the 5-Fold Cross Validation
+
+The cost of a false negative and a false positive must be specified. When making a false positive, resource misallocation may be worsen and firm dynamics are reduced. On the other hand, firms that are actually fast growing should be able to grow without the support. They may only grow slower without government support.
+
+Based on the argument above, I arbitrarily set the cost of a false positive to be 1.3 times higher than that of a false negative. I normalize the cost of a false negative to be 100\$. Hence, the cost of a false positive is 130\$.
+
+The expected loss function is as follows:
+
+$E(Loss) = Cost of False Positive \times P(False Positive) + Cost of False Negative \times P(False Negative)$
+
+The RMSE, AUC, expected loss in the test sets average cross 5-folds, and the optimal threshold for each model are shown in @tbl-Performance-CV.
+
+
+: Performance and Expected Loss of Models from Cross Validation {#tbl-Performance-CV}
+
+|   Model_Name    |  RMSE  |  AUC   | Expected Loss | Optimal Threshold |
+|:---------------:|:------:|:------:|:-------------:|:------------------:|
+|    Logit 2      | 0.3011 | 0.7177 |     2.0745    |        0.70        |
+|     LASSO       | 0.2993 | 0.7527 |     2.0787    |        0.45        |
+| Random Forest   | 0.2918 | 0.7712 |     6.6263    |        0.95        |
+
+If models are selected on their predictive performance by using RMSE and AUC, the random forest model is the best. However, if we consider the expected loss, the logistic regression model 2 is the best. This is interesting as it illustrates that the model with the best predictive performance may not be the best model for the problem we are interested in. 
+
+## Model Evaluation
+
+Unexpectedly, the confusion matrices produced from all of the three models are identical. This is because the predicted probabilities in the hold-out set are all below the selected optimal threshold. 
+
+{{< pagebreak >}}
+
+: Confusion Matrix in the Hold-out Set {#tbl-Confusion-Matrix-hold-out}
+
+|                           | Actual Fast Growing | Actual Not Fast Growing | Total  |
+|:--------------------------:|:-------------------:|:------------------------:|:------:|
+| Predicted Fast Growing    |        0.00%        |          0.00%           |  0.00% |
+| Predicted Not Fast Growing |       11.07%        |         88.93%           | 100.00%|
+|         -------------------------        | -------------------  |        ------------------------   |  ------   |
+|             Total                     |       11.07%        |         88.93%           | 100.00%|
+
+Although the classification models are able to avoid false positives perfectly in the hold-out set, it is not impressive as all observations are classified as not fast growing. Additionally, the models cannot identify any fast growing firms. Hence, we might need some adjustments to make the model useful. 
+
+: Performance and Expected Loss of Models in the Hold-out Set  {#tbl-Performance-hold-out}
+
+|      Model       |   RMSE   |   AUC    | Expected_Loss |
+|:-----------------:|:--------:|:--------:|:-------------:|
+|      Logit        |  0.3038  |  0.7055  |    11.0694    |
+|      LASSO        |  0.3099  |  0.7505  |    11.0694    |
+| Random Forest     |  0.2983  |  0.7739  |    11.0694    |
+
+There are three observations to be made from @tbl-Performance-hold-out. First, the predictive performance of the models in the hold-out set is similar to that in the cross-validation. The random forest model also still has the best predictive performance. Second, the expected loss is the same for all models since all models classify all observations as not fast growing. Third, the expected loss is substantially higher than that in the cross-validation. 
+
+
+# Task 2
+Next, the performance of the model is evaluated in different sectors, namely manufacturing and service sectors. I pick the logistic regression model 2 to carry out the classification in both sectors as it is the model that minimizes the expected loss in Task 1. The expected loss function and the optimal threshold are the same as before.
+
+: Performance and Expected Loss of Logit 2 in Different Sectors {#tbl-Performance-Manu-Service}
+
+|                   |   RMSE   |   AUC    | Expected Loss |
+|:-----------------:|:--------:|:--------:|:-------------:|
+| Manufacturing Sector |  0.3295  |  0.6936  |    12.9450    |
+|   Service Sector  |  0.2938  |  0.7352  |    10.3862    |
+
+The logistic regression model 2 has a better predictive performance in the service sector than in the manufacturing sector. The expected loss is also lower in the service sector. This could be because there are substantially more observations in the service sector than in the manufacturing sector in the dataset.
+
+Other overall findings that are worth mentioning are:
+
+1. The number of fast growing firms are extremely low, as reflected by the class imbalance problem. This indicates that only small fraction of firm can sustain high growth rate for a long period of time.
+
+2. It is difficult to identify fast growing firms.
+
+These two findings are also found in the literature.
+
+The code for the analysis can be found in the following link:<https://github.com/PhakphumJ/DA3-phdma/tree/main/Assignment%203>
