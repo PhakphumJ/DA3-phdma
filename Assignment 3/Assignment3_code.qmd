@@ -1768,7 +1768,212 @@ Data_2012_hold_out$False_neg_RF <- ifelse(Data_2012_hold_out$fast_growing == "Ye
 
 ```
 
+```{r}
+### Calculate each element of the confusion matrix for each model.
 
+## Logit
+# Calculate number of true positives_logit.
+true_pos_logit <- sum(Data_2012_hold_out$True_pos_logit)
+
+# Calculate number of false positives_logit.
+false_pos_logit <- sum(Data_2012_hold_out$False_pos_logit)
+
+# Calculate number of true negatives_logit.
+true_neg_logit <- sum(Data_2012_hold_out$True_neg_logit)
+
+# Calculate number of false negatives_logit.
+false_neg_logit <- sum(Data_2012_hold_out$False_neg_logit)
+
+# Calculate total number of positives_logit.
+total_pos_logit <- true_pos_logit + false_neg_logit
+
+# Calculate total number of negatives_logit.
+total_neg_logit <- true_neg_logit + false_pos_logit
+
+# calculate total number of predicted positives_logit.
+total_predicted_pos_logit <- true_pos_logit + false_pos_logit
+
+# calculate total number of predicted negatives_logit.
+total_predicted_neg_logit <- true_neg_logit + false_neg_logit
+
+# calculate total number of observations.
+total_obs_logit <- total_pos_logit + total_neg_logit
+
+## LASSO
+# Calculate number of true positives_lasso.
+true_pos_lasso <- sum(Data_2012_hold_out$True_pos_lasso)
+
+# Calculate number of false positives_lasso.
+false_pos_lasso <- sum(Data_2012_hold_out$False_pos_lasso)
+
+# Calculate number of true negatives_lasso.
+true_neg_lasso <- sum(Data_2012_hold_out$True_neg_lasso)
+
+# Calculate number of false negatives_lasso.
+false_neg_lasso <- sum(Data_2012_hold_out$False_neg_lasso)
+
+# Calculate total number of positives_lasso.
+total_pos_lasso <- true_pos_lasso + false_neg_lasso
+
+# Calculate total number of negatives_lasso.
+total_neg_lasso <- true_neg_lasso + false_pos_lasso
+
+# calculate total number of predicted positives_lasso.
+total_predicted_pos_lasso <- true_pos_lasso + false_pos_lasso
+
+# calculate total number of predicted negatives_lasso.
+total_predicted_neg_lasso <- true_neg_lasso + false_neg_lasso
+
+# calculate total number of observations.
+total_obs_lasso <- total_pos_lasso + total_neg_lasso
+
+## Random Forest
+# Calculate number of true positives_RF.
+true_pos_RF <- sum(Data_2012_hold_out$True_pos_RF)
+
+# Calculate number of false positives_RF.
+false_pos_RF <- sum(Data_2012_hold_out$False_pos_RF)
+
+# Calculate number of true negatives_RF.
+true_neg_RF <- sum(Data_2012_hold_out$True_neg_RF)
+
+# Calculate number of false negatives_RF.
+false_neg_RF <- sum(Data_2012_hold_out$False_neg_RF)
+
+# Calculate total number of positives_RF.
+total_pos_RF <- true_pos_RF + false_neg_RF
+
+# Calculate total number of negatives_RF.
+total_neg_RF <- true_neg_RF + false_pos_RF
+
+# calculate total number of predicted positives_RF.
+total_predicted_pos_RF <- true_pos_RF + false_pos_RF
+
+# calculate total number of predicted negatives_RF.
+total_predicted_neg_RF <- true_neg_RF + false_neg_RF
+
+# calculate total number of observations.
+total_obs_RF <- total_pos_RF + total_neg_RF
+
+```
+
+
+```{r}
+### Make Confusion Matrix for Logit. (3 colunms: Actual Fast Growing, Actual Not Fast Growing, Total; 3 rows: Predicted Fast Growing, Predicted Not Fast Growing, Total)
+
+# Create matrix for confusion matrix_logit.
+confusion_matrix_logit <- matrix(c(true_pos_logit, false_pos_logit, total_predicted_pos_logit,
+               false_neg_logit, true_neg_logit, total_predicted_neg_logit,
+               total_pos_logit, total_neg_logit, total_obs_logit),
+             nrow = 3, ncol = 3, byrow = TRUE)
+
+# Divide each element in confusion matrix_lasso by total number of observations and x 100 to get percentage.
+confusion_matrix_logit <- (confusion_matrix_logit / total_obs_logit) * 100
+
+# convert matrix to dataframe.
+confusion_matrix_logit <- as.data.frame(confusion_matrix_logit)
+
+# Add column names to confusion matrix_logit.
+colnames(confusion_matrix_logit) <- c("Actual Fast Growing", "Actual Not Fast Growing", "Total")
+
+# Add row names to confusion matrix_logit.
+rownames(confusion_matrix_logit) <- c("Predicted Fast Growing", "Predicted Not Fast Growing", "Total")
+
+# Print confusion matrix_logit.
+kable(confusion_matrix_logit, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+
+
+```
+
+```{r}
+## Examine the top values of predicted probabilities for the fast growing class.
+# Create dataframe of predicted probabilities for fast growing class.
+predicted_probs_logit <- Data_2012_hold_out %>%
+  select(fast_growing, predicted_probs_logit) %>%
+  arrange(desc(predicted_probs_logit))
+
+
+kable(head(predicted_probs_logit , 5))
+
+# We can see that all of predicted probabilities fall below the optimal threshold. 
+
+```
+
+
+```{r}
+### Make Confusion Matrix for LASSO. (3 colunms: Actual Fast Growing, Actual Not Fast Growing, Total; 3 rows: Predicted Fast Growing, Predicted Not Fast Growing, Total)
+
+# Create matrix for confusion matrix_lasso.
+confusion_matrix_lasso <- matrix(c(true_pos_lasso, false_pos_lasso, total_predicted_pos_lasso,
+               false_neg_lasso, true_neg_lasso, total_predicted_neg_lasso,
+               total_pos_lasso, total_neg_lasso, total_obs_lasso),
+             nrow = 3, ncol = 3, byrow = TRUE)
+
+# Divide each element in confusion matrix_lasso by total number of observations and x 100 to get percentage.
+confusion_matrix_lasso <- confusion_matrix_lasso / total_obs_lasso * 100
+
+# convert matrix to dataframe.
+confusion_matrix_lasso <- as.data.frame(confusion_matrix_lasso)
+
+# Add column names to confusion matrix_lasso.
+colnames(confusion_matrix_lasso) <- c("Actual Fast Growing", "Actual Not Fast Growing", "Total")
+
+# Add row names to confusion matrix_lasso.
+rownames(confusion_matrix_lasso) <- c("Predicted Fast Growing", "Predicted Not Fast Growing", "Total")
+
+# Print confusion matrix_lasso.
+kable(confusion_matrix_lasso, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+```
+
+```{r}
+## Examine the top values of predicted probabilities for the fast growing class.
+# Create dataframe of predicted probabilities for fast growing class.
+predicted_probs_lasso <- Data_2012_hold_out %>%
+  select(fast_growing, predicted_probs_lasso) %>%
+  arrange(desc(predicted_probs_lasso))
+
+
+kable(head(predicted_probs_lasso , 5))
+```
+
+```{r}
+### Make Confusion Matrix for Random Forest. (3 colunms: Actual Fast Growing, Actual Not Fast Growing, Total; 3 rows: Predicted Fast Growing, Predicted Not Fast Growing, Total)
+
+# Create matrix for confusion matrix_RF.
+confusion_matrix_RF <- matrix(c(true_pos_RF, false_pos_RF, total_predicted_pos_RF,
+               false_neg_RF, true_neg_RF, total_predicted_neg_RF,
+               total_pos_RF, total_neg_RF, total_obs_RF),
+             nrow = 3, ncol = 3, byrow = TRUE)
+
+# Divide each element in confusion matrix_lasso by total number of observations and x 100 to get percentage.
+confusion_matrix_RF <- confusion_matrix_RF / total_obs_RF * 100
+
+# convert matrix to dataframe.
+confusion_matrix_RF <- as.data.frame(confusion_matrix_RF)
+
+# Add column names to confusion matrix_RF.
+colnames(confusion_matrix_RF) <- c("Actual Fast Growing", "Actual Not Fast Growing", "Total")
+
+# Add row names to confusion matrix_RF.
+rownames(confusion_matrix_RF) <- c("Predicted Fast Growing", "Predicted Not Fast Growing", "Total")
+
+# Print confusion matrix_RF.
+kable(confusion_matrix_RF, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+```
+
+```{r}
+## Examine the top values of predicted probabilities for the fast growing class.
+# Create dataframe of predicted probabilities for fast growing class.
+predicted_probs_RF <- Data_2012_hold_out %>%
+  select(fast_growing, predicted_probs_RF) %>%
+  arrange(desc(predicted_probs_RF))
+
+
+kable(head(predicted_probs_RF , 5))
+```
 
 
 # Task 2
