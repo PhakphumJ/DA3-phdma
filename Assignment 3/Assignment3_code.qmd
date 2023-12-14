@@ -1697,6 +1697,7 @@ kable(results_loss, digits = 4, align = "c") %>%
 best_logit_model <- update(logit_1, . ~ . + net_profit_margin + current_ratio_cat + equity_to_assets_cat + flag_asset_problem + flag_curr_liab_problem + net_profit_margin_flag_low + net_profit_margin_flag_high, data = Data_2012)
 
 # Fit the LASSO model 
+
 best_lasso_model = tuned_logit_lasso_model
 
 # Fit the random forest model
@@ -1705,6 +1706,68 @@ predictors <- Data_2012[, -which(names(Data_2012) %in% c("fast_growing"))]
 best_RF_model <- randomForest(x = predictors, y = Data_2012$fast_growing, ntree = 150, mtry = mtry_optimal)
 
 ```
+
+```{r}
+## Make predictions on the hold-out set.
+
+# Make predictions using the logit model
+Data_2012_hold_out$predicted_probs_logit <- predict(best_logit_model, newdata = Data_2012_hold_out, type = "response")
+
+# Make predictions using the LASSO model
+
+newx_lasso_hold_out = model.matrix(formula(paste0("fast_growing ~", paste0(Lasso_vars, collapse = " + "))), Data_2012_hold_out)[, -1]
+
+Data_2012_hold_out$predicted_probs_lasso <- predict(best_lasso_model, newdata = Data_2012_hold_out, type = "response", s = lambda_optimal, newx = newx_lasso_hold_out)
+
+# Make predictions using the random forest model
+Data_2012_hold_out$predicted_probs_RF <- predict(best_RF_model, newdata = Data_2012_hold_out, type = "prob")[, 2]
+
+```
+
+```{r}
+### Get number of true positives, false positives, true negatives, and false negatives for each model, using the optimal threshold of each model.
+
+## Logit
+# Create dummy: true positive_logit.
+Data_2012_hold_out$True_pos_logit <- ifelse(Data_2012_hold_out$fast_growing == "Yes" & Data_2012_hold_out$predicted_probs_logit > optimal_threshold_logit, 1, 0)
+
+# Create dummy: false positive_logit.
+Data_2012_hold_out$False_pos_logit <- ifelse(Data_2012_hold_out$fast_growing == "No" & Data_2012_hold_out$predicted_probs_logit > optimal_threshold_logit, 1, 0)
+
+# Create dummy: true negative_logit.
+Data_2012_hold_out$True_neg_logit <- ifelse(Data_2012_hold_out$fast_growing == "No" & Data_2012_hold_out$predicted_probs_logit <= optimal_threshold_logit, 1, 0)
+
+# Create dummy: false negative_logit.
+Data_2012_hold_out$False_neg_logit <- ifelse(Data_2012_hold_out$fast_growing == "Yes" & Data_2012_hold_out$predicted_probs_logit <= optimal_threshold_logit, 1, 0)
+
+## LASSO
+# Create dummy: true positive_lasso.
+Data_2012_hold_out$True_pos_lasso <- ifelse(Data_2012_hold_out$fast_growing == "Yes" & Data_2012_hold_out$predicted_probs_lasso > optimal_threshold_lasso, 1, 0)
+
+# Create dummy: false positive_lasso.
+Data_2012_hold_out$False_pos_lasso <- ifelse(Data_2012_hold_out$fast_growing == "No" & Data_2012_hold_out$predicted_probs_lasso > optimal_threshold_lasso, 1, 0)
+
+# Create dummy: true negative_lasso.
+Data_2012_hold_out$True_neg_lasso <- ifelse(Data_2012_hold_out$fast_growing == "No" & Data_2012_hold_out$predicted_probs_lasso <= optimal_threshold_lasso, 1, 0)
+
+# Create dummy: false negative_lasso.
+Data_2012_hold_out$False_neg_lasso <- ifelse(Data_2012_hold_out$fast_growing == "Yes" & Data_2012_hold_out$predicted_probs_lasso <= optimal_threshold_lasso, 1, 0)
+
+## Random Forest
+# Create dummy: true positive_RF.
+Data_2012_hold_out$True_pos_RF <- ifelse(Data_2012_hold_out$fast_growing == "Yes" & Data_2012_hold_out$predicted_probs_RF > optimal_threshold_RF, 1, 0)
+
+# Create dummy: false positive_RF.
+Data_2012_hold_out$False_pos_RF <- ifelse(Data_2012_hold_out$fast_growing == "No" & Data_2012_hold_out$predicted_probs_RF > optimal_threshold_RF, 1, 0)
+
+# Create dummy: true negative_RF.
+Data_2012_hold_out$True_neg_RF <- ifelse(Data_2012_hold_out$fast_growing == "No" & Data_2012_hold_out$predicted_probs_RF <= optimal_threshold_RF, 1, 0)
+
+# Create dummy: false negative_RF.
+Data_2012_hold_out$False_neg_RF <- ifelse(Data_2012_hold_out$fast_growing == "Yes" & Data_2012_hold_out$predicted_probs_RF <= optimal_threshold_RF, 1, 0)
+
+```
+
 
 
 
