@@ -23,6 +23,7 @@ library(kableExtra)
 library(tidyr)
 library(fastDummies)
 library(groupdata2)
+library(glmnet)
 
 # Set Working Directory
 
@@ -413,6 +414,28 @@ Data_panel <- Data_panel %>%
 Data_panel <- Data_panel %>%
   select(-ind2)
 ```
+
+```{r}
+### Examine value of ind2_cat
+Data_panel %>%
+  group_by(ind2_cat) %>%
+  count()
+```
+
+```{r}
+## Drop those with ind2_cat = 35
+Data_panel <- Data_panel %>%
+  filter(ind2_cat != 35)
+```
+
+```{r}
+## Make ind2_cat a factor variable
+Data_panel <- Data_panel %>%
+  mutate(ind2_cat = factor(ind2_cat, levels = c(20, 26, 27, 28, 30, 32, 33, 40, 55, 56, 60, 99)))
+```
+
+
+
 
 ```{r}
 ### create factors variables urban_m, gender_m, region_m.
@@ -918,31 +941,309 @@ Data_panel_focus %>%
   count(fast_growing)
 ```
 
+The ideal way to build and select the model is to build and evaluate the model within each year. However, due to time constraint and simplicity, I use data only from 2012 to build and choose the model. 2012 is the year with the most observations and the class is also the most balanced. 
+
+```{r}
+## Use only data from 2012.
+Data_2012 <- Data_panel_focus %>%
+  filter(year == 2012)
+
+# remove Data_panel_focus from the environment
+rm(Data_panel_focus)
+```
+
+
 ```{r}
 ### Restricting sample and downsampling.
 ## Downsample majority class in each year
-# Randomly filter out 70% of the majority class in each year.
+# Randomly filter out 55% of the majority class in each year.
 set.seed(20231210)
-Data_toss <- Data_panel_focus %>%
+Data_toss <- Data_2012 %>%
   group_by(year) %>%
   filter(fast_growing == FALSE) %>%
-  sample_frac(0.7)
+  sample_frac(0.55)
 
 # Toss them out of the original dataset.
-Data_panel_focus <- Data_panel_focus %>%
+Data_2012 <- Data_2012 %>%
   anti_join(Data_toss, by = c("comp_id", "year"))
 
 # remove Data_toss from the environment
 rm(Data_toss)
+
+Data_2012 <- Data_2012 %>% ungroup()
+
 ```
 
 ```{r}
 ## Lets' examine fast_growing again
-Data_panel_focus %>% 
-  group_by(year) %>%
+Data_2012 %>% 
   count(fast_growing)
 ```
 
 
+```{r}
+# dropping flags with no variation
+Data_2012 <- Data_2012 %>% ungroup()
 
+variances<- Data_2012 %>%
+  select(contains("flag")) %>%
+  apply(2, var, na.rm = TRUE) == 0
+
+Data_2012 <- Data_2012 %>%
+  select(-one_of(names(variances)[variances]))
+```
+
+
+## Building Models
+
+Three types of models are considered in this exercise. 1) Logistic Regression, 2) LASSO Logistic Regression, and 3) Random Forest. Details of each model are described in the following subsections.
+
+The data is split into a work set and a hold-out set. 15% is used as the hold-out set for performance evaluation.
+
+```{r}
+## Split the data into a work set and a hold-out set.
+set.seed(20231210)
+
+Data_2012_hold_out <- Data_2012 %>%
+  sample_frac(0.15)
+
+# Subtract the hold-out set from the work set (anti_join).
+Data_2012 <- Data_2012 %>%
+  anti_join(Data_2012_hold_out, by = c("comp_id", "year"))
+
+# drop comp_id and year.
+
+Data_2012 <- Data_2012 %>%
+  select(-comp_id, -year)
+
+Data_2012_hold_out <- Data_2012_hold_out %>%
+  select(-comp_id, -year)
+
+```
+
+
+### Logistic Regression
+
+Five logistic regression models are built. General financial and economic knowledge is used to build the models. The following are the predictors used in each model.
+
+1. Model 1: The growth rate of sales-to-total cost from 2011 to 2012 is used as the only predictor. This ratio is used to built the outcome variable. This is to see if past performance can predict future performance.
+
+2. Model 2: Model 1 + variables capturing how well the firms are doing in terms of profitability, liquidity, and solvency. These are the most frequently used financial ratios.
+
+3. Model 3: Model 2 + variables capturing labors, capital, and the past attempt to expand these inputs. These variables may capture the aspiration of the firms to grow.
+
+4. Model 4: Model 3 + industry and interaction terms of the included variables with industry variable. These are important since each industry has different characteristics.
+
+5. Model 5: Model 4. + the remaining variables.
+
+RMSE from the 5-fold cross validation is calculated for each model.
+
+```{r}
+#### Perform 5-fold cross validation on logistic regression models.
+
+set.seed(20231210)
+# Getting the indices for 5-fold cross validation
+folds <- createFolds(Data_2012$fast_growing, k = 5, list = TRUE, returnTrain = TRUE)
+
+### Estimating Models and obtains RMSE (5-folds CV)
+## Model 1
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_1 <- glm(fast_growing ~ growth_rate, data = train, family = "binomial")
+  
+  # predict the test set
+  pred <- predict(logit_1, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_1 <- sqrt(mean(unlist(results)^2))
+
+## Model 2
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_2 <- update(logit_1, . ~ . + net_profit_margin + current_ratio_cat + equity_to_assets_cat + flag_asset_problem + flag_curr_liab_problem + net_profit_margin_flag_low + net_profit_margin_flag_high, data = train)
+  
+  # predict the test set
+  pred <- predict(logit_2, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_2 <- sqrt(mean(unlist(results)^2))
+
+## Model 3 
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_3 <- update(logit_2, . ~ . + fixed_assets_ratio + intang_assets_ratio + emp_avg + emp_growth_rate + flag_miss_emp + personnel_exp_per_emp + flag_personnel_exp_problem + fixed_assets_growth_rate_cat + intang_assets_growth_rate_cat + personnel_exp_per_emp_growth_rate_cat, data = train)
+                    
+  # predict the test set
+  pred <- predict(logit_3, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_3 <- sqrt(mean(unlist(results)^2))
+
+## Model 4
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_4 <- update(logit_3, . ~ . + ind2_cat + growth_rate*ind2_cat + net_profit_margin*ind2_cat + current_ratio_cat*ind2_cat + equity_to_assets_cat*ind2_cat + fixed_assets_ratio*ind2_cat + intang_assets_ratio*ind2_cat + emp_avg*ind2_cat + emp_growth_rate*ind2_cat +  personnel_exp_per_emp*ind2_cat +  fixed_assets_growth_rate_cat*ind2_cat + intang_assets_growth_rate_cat*ind2_cat + personnel_exp_per_emp_growth_rate_cat*ind2_cat, data = train)
+  
+  # predict the test set
+  pred <- predict(logit_4, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_4 <- sqrt(mean(unlist(results)^2))
+
+## Model 5
+
+results <- list()
+
+for (i in 1:5) {
+  # get the training set
+  train <- Data_2012[folds[[i]],]
+  
+  # get the test set
+  test <- Data_2012[-folds[[i]],]
+  
+  # build the model
+  logit_5 <- update(logit_4, . ~ . + ceo_count + female + inoffice_days + urban_m + region_m + age + I(age^2) + ceo_age_young + ceo_age_middle + gender_m + origin_m + foreign_management + inventory_to_sales + flag_inventories_problem + inventory_to_sales_flag, data = train)
+  
+  # predict the test set
+  pred <- predict(logit_5, test, type = "response")
+  
+  # calculate RMSE
+  rmse <- sqrt(mean((pred - test$fast_growing)^2))
+  
+  # store the results
+  results[[i]] <- rmse
+}
+
+# calculate the average RMSE
+RMSE_Logit_5 <- sqrt(mean(unlist(results)^2))
+```
+
+Logistic regression model 2 and 3 have the lowest RMSE. 
+
+
+### LASSO Logistic Regression
+
+The parameter lambda is chosen by cross validation.
+
+```{r}
+#### LASSO
+## Let's define the predictor matrix X.
+X_Lasso <- model.matrix(fast_growing ~ ., data = Data_2012)[,-1]
+
+### Create interaction terms (except for flags)
+
+# Identify variables containing the word "flag"
+names_to_exclude <- grep("flag", colnames(X_Lasso), value = TRUE)
+
+# Filter variables that do not contain the word "names"
+X_without_flag <- X_Lasso[, !colnames(X_Lasso) %in% names_to_exclude]
+
+# Generate interaction terms for the remaining variables
+X_Lasso_interaction <- model.matrix(~.^2, data.frame(X_without_flag))
+
+# Combine them
+X_Lasso <- cbind(X_Lasso, X_Lasso_interaction)
+
+## Let's define the response vector Y.
+Y_Lasso <- Data_2012$fast_growing
+
+```
+
+```{r}
+### Fit LASSO logistic regression model using glmnet 5 fold cross validation.
+set.seed(20231210)
+# Fit the model
+lasso_fit <- cv.glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, nfolds = 5)
+
+# Get the optimal value of lambda
+lambda_optimal <- lasso_fit$lambda.min
+
+```
+
+```{r}
+## Report the optimal lambda.
+cat("Optimal lambda:", lambda_optimal_interactions, "\n")
+
+## get the RMSE (in 5 test set) from lasso_fit corresponding the the optimal value of lambda.
+cvm_optimal <- lasso_fit$cvm[lasso_fit$lambda == lambda_optimal] # This is MSE.
+
+RMSE_CV_Lasso <- sqrt(cvm_optimal)
+
+
+```
+
+```{r}
+# Fit the final model with the optimal lambda
+Lasso_optimal <- glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, lambda = lambda_optimal)
+```
+
+
+### Random Forest
+
+
+## Model Performance
 
