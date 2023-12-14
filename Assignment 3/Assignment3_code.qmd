@@ -1239,45 +1239,67 @@ The parameter lambda is chosen by cross validation.
 
 
 ```{r}
-#### LASSO
-## Let's define the predictor matrix X.
-X_Lasso <- model.matrix(fast_growing ~ ., data = Data_2012)[,-1]
+### Create sets of variable to use in LASSO.
+interaction_terms <- c("ind2_cat*growth_rate", "ind2_cat*ceo_count", "ind2_cat*female", "ind2_cat*inoffice_days", "ind2_cat*urban_m", "ind2_cat*region_m", "ind2_cat*age", "ind2_cat*ceo_age_young", "ind2_cat*ceo_age_middle", 
+  "ind2_cat*gender_m","ind2_cat*origin_m", "ind2_cat*foreign_management", "ind2_cat*inventory_to_sales",  "ind2_cat*net_profit_margin", "ind2_cat*current_ratio_cat", "ind2_cat*equity_to_assets_cat", "ind2_cat*fixed_assets_ratio", "ind2_cat*intang_assets_ratio", "ind2_cat*emp_avg", "ind2_cat*emp_growth_rate", "ind2_cat*personnel_exp_per_emp", "ind2_cat*fixed_assets_growth_rate_cat", "ind2_cat*intang_assets_growth_rate_cat", "ind2_cat*personnel_exp_per_emp_growth_rate_cat")
 
-# Remove the column "ind"
-X_Lasso <- X_Lasso[, colnames(X_Lasso)!= "ind"]
+# Original variable
+LASSOVAR <- colnames(Data_2012)
 
-## Let's define the response vector Y.
-Y_Lasso <- Data_2012$fast_growing
+# exclude ind
+LASSOVAR <- LASSOVAR[LASSOVAR != "ind"]
+
+# exclude fast_growing
+LASSOVAR <- LASSOVAR[LASSOVAR != "fast_growing"]
+
+## Combine
+Lasso_vars <- c(LASSOVAR, interaction_terms)
 
 ```
+
+
+
+
 
 ```{r}
 ### Fit LASSO logistic regression model using glmnet 5 fold cross validation.
 set.seed(20231210)
+
+# setting up the control
+control <- trainControl(method = "cv", number = 5)
+
 # Fit the model
-lasso_fit <- cv.glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, nfolds = 5, standardize = TRUE)
+
+lambda <- 10^seq(-0.1, -4, length = 20)
+grid <- expand.grid("alpha" = 1, lambda = lambda)
+
+logit_lasso_model <- train(formula(paste0("fast_growing ~", paste0(Lasso_vars, collapse = " + "))),
+    data = Data_2012,
+    method = "glmnet",
+    preProcess = c("center", "scale"),
+    family = "binomial",
+    trControl = control,
+    tuneGrid = grid,
+    na.action=na.exclude,  metric = "RMSE")
+
 
 # Get the optimal value of lambda
-lambda_optimal <- lasso_fit$lambda.min
+lambda_optimal <- logit_lasso_model$bestTune$lambda
 
 ```
 
 ```{r}
 ## Report the optimal lambda.
-cat("Optimal lambda:", lambda_optimal_interactions, "\n")
+cat("Optimal lambda:", lambda_optimal, "\n")
 
-## get the RMSE (in 5 test set) from lasso_fit corresponding the the optimal value of lambda.
-cvm_optimal <- lasso_fit$cvm[lasso_fit$lambda == lambda_optimal] # This is MSE.
+## get the MAE (in 5 test set).
+MAE_lasso <- logit_lasso_model$resample$MAE
 
-RMSE_CV_Lasso <- sqrt(cvm_optimal)
-
-
+## RMSE
+RMSE_lasso <- sqrt(mean(MAE_lasso))
 ```
 
-```{r}
-# Fit the final model with the optimal lambda
-Lasso_optimal <- glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, lambda = lambda_optimal, standardize = TRUE)
-```
+We will retun back and converting fast_growing to a factor variable to be able to get AUC.
 
 
 ### Random Forest
