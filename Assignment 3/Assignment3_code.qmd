@@ -1255,6 +1255,16 @@ LASSOVAR <- LASSOVAR[LASSOVAR != "fast_growing"]
 ## Combine
 Lasso_vars <- c(LASSOVAR, interaction_terms)
 
+### Recode fast_growing as factor.
+Data_2012$fast_growing <- as.factor(Data_2012$fast_growing)
+
+Data_2012_hold_out$fast_growing <- as.factor(Data_2012_hold_out$fast_growing)
+
+## Relabel the levels of fast_growing
+levels(Data_2012$fast_growing) <- c("No", "Yes")
+
+levels(Data_2012_hold_out$fast_growing) <- c("No", "Yes")
+
 ```
 
 
@@ -1265,8 +1275,28 @@ Lasso_vars <- c(LASSOVAR, interaction_terms)
 ### Fit LASSO logistic regression model using glmnet 5 fold cross validation.
 set.seed(20231210)
 
+# Set up my own summary function.
+RMSE_sum <- function(data, lev = NULL, model = NULL) {
+  probs <- data[, lev[1]]
+  c(rmse = RMSE(pred = probs,
+                obs = ifelse(data$obs == lev[1], 1, 0)))
+}
+
+# Define your custom summary function
+customSummary <- function(data, lev = NULL, model = NULL) {
+  # Calculate metrics using twoClassSummary
+  default_metrics <- twoClassSummary(data, lev, model)
+  
+  # Calculate your custom metric (RMSE_sum)
+  additional_metric <- RMSE_sum(data, lev, model)
+  
+  # Combine the metrics into a vector
+  c(default_metrics, additional_metric)
+}
+  
+
 # setting up the control
-control <- trainControl(method = "cv", number = 5)
+control <- trainControl(method = "cv", number = 5, summaryFunction = customSummary, classProbs = TRUE)
 
 # Fit the model
 
@@ -1280,12 +1310,16 @@ logit_lasso_model <- train(formula(paste0("fast_growing ~", paste0(Lasso_vars, c
     family = "binomial",
     trControl = control,
     tuneGrid = grid,
-    na.action=na.exclude,  metric = "RMSE")
+    na.action=na.exclude,  metric = "ROC")
 
 
 # Get the optimal value of lambda
 lambda_optimal <- logit_lasso_model$bestTune$lambda
 
+```
+
+```{r}
+print(logit_lasso_model)
 ```
 
 ```{r}
@@ -1310,19 +1344,19 @@ Next, I consider the random forest model. 5-fold cross-validation is used to tun
 ## Setting up the random forest
 # specifying the range of values for the tuning parameters
 
-mtry <- seq(4, 9, by = 1)
+mtry <- seq(5, 14, by = 1)
 
 # Setting up the grid
 grid <- expand.grid(mtry = mtry)
 
 # setting up the control
-control <- trainControl(method = "cv", number = 5)
+control <- trainControl(method = "cv", number = 5, summaryFunction = customSummary, classProbs = TRUE)
 
 # tuning the model
 set.seed(20231210)
 
 # I set ntree = 150 for the sake of computation time.
-model_RF <- train(fast_growing ~ ., data = Data_2012, method = "rf", trControl = control, tuneGrid = grid, ntree = 150)
+model_RF <- train(fast_growing ~ ., data = Data_2012[,!names(Data_2012) %in% c("ind")], method = "rf", trControl = control, tuneGrid = grid, ntree = 150, metric = "ROC")
 ```
 
 
