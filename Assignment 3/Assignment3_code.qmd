@@ -24,6 +24,7 @@ library(tidyr)
 library(fastDummies)
 library(groupdata2)
 library(glmnet)
+library(pROC)
 
 # Set Working Directory
 
@@ -1046,9 +1047,11 @@ set.seed(20231210)
 folds <- createFolds(Data_2012$fast_growing, k = 5, list = TRUE, returnTrain = TRUE)
 
 ### Estimating Models and obtains RMSE (5-folds CV)
+## For each of these calculate the RMSE and AUC for each fold and average them at the end.
 ## Model 1
 
 results <- list()
+results_auc <- list()
 
 for (i in 1:5) {
   # get the training set
@@ -1066,16 +1069,26 @@ for (i in 1:5) {
   # calculate RMSE
   rmse <- sqrt(mean((pred - test$fast_growing)^2))
   
+  # calculate AUC
+  auc <- auc(test$fast_growing, pred)
+  
   # store the results
   results[[i]] <- rmse
+  
+  results_auc[[i]] <- auc
 }
 
 # calculate the average RMSE
 RMSE_Logit_1 <- sqrt(mean(unlist(results)^2))
 
+# calculate the average AUC
+AUC_Logit_1 <- mean(unlist(results_auc))
+
+
 ## Model 2
 
 results <- list()
+results_auc <- list()
 
 for (i in 1:5) {
   # get the training set
@@ -1093,16 +1106,25 @@ for (i in 1:5) {
   # calculate RMSE
   rmse <- sqrt(mean((pred - test$fast_growing)^2))
   
+  # calculate AUC
+  auc <- auc(test$fast_growing, pred)
+  
   # store the results
   results[[i]] <- rmse
+  
+  results_auc[[i]] <- auc
 }
 
 # calculate the average RMSE
 RMSE_Logit_2 <- sqrt(mean(unlist(results)^2))
 
+# calculate the average AUC
+AUC_Logit_2 <- mean(unlist(results_auc))
+
 ## Model 3 
 
 results <- list()
+results_auc <- list()
 
 for (i in 1:5) {
   # get the training set
@@ -1120,16 +1142,25 @@ for (i in 1:5) {
   # calculate RMSE
   rmse <- sqrt(mean((pred - test$fast_growing)^2))
   
+  # calculate AUC
+  auc <- auc(test$fast_growing, pred)
+  
   # store the results
   results[[i]] <- rmse
+  
+  results_auc[[i]] <- auc
 }
 
 # calculate the average RMSE
 RMSE_Logit_3 <- sqrt(mean(unlist(results)^2))
 
+# calculate the average AUC
+AUC_Logit_3 <- mean(unlist(results_auc))
+
 ## Model 4
 
 results <- list()
+results_auc <- list()
 
 for (i in 1:5) {
   # get the training set
@@ -1147,16 +1178,25 @@ for (i in 1:5) {
   # calculate RMSE
   rmse <- sqrt(mean((pred - test$fast_growing)^2))
   
+  # calculate AUC
+  auc <- auc(test$fast_growing, pred)
+  
   # store the results
   results[[i]] <- rmse
+  
+  results_auc[[i]] <- auc
 }
 
 # calculate the average RMSE
 RMSE_Logit_4 <- sqrt(mean(unlist(results)^2))
 
+# calculate the average AUC
+AUC_Logit_4 <- mean(unlist(results_auc))
+
 ## Model 5
 
 results <- list()
+results_auc <- list()
 
 for (i in 1:5) {
   # get the training set
@@ -1174,12 +1214,20 @@ for (i in 1:5) {
   # calculate RMSE
   rmse <- sqrt(mean((pred - test$fast_growing)^2))
   
+  # calculate AUC
+  auc <- auc(test$fast_growing, pred)
+  
   # store the results
   results[[i]] <- rmse
+  
+  results_auc[[i]] <- auc
 }
 
 # calculate the average RMSE
 RMSE_Logit_5 <- sqrt(mean(unlist(results)^2))
+
+# calculate the average AUC
+AUC_Logit_5 <- mean(unlist(results_auc))
 ```
 
 Logistic regression model 2 and 3 have the lowest RMSE. 
@@ -1189,24 +1237,14 @@ Logistic regression model 2 and 3 have the lowest RMSE.
 
 The parameter lambda is chosen by cross validation.
 
+
 ```{r}
 #### LASSO
 ## Let's define the predictor matrix X.
 X_Lasso <- model.matrix(fast_growing ~ ., data = Data_2012)[,-1]
 
-### Create interaction terms (except for flags)
-
-# Identify variables containing the word "flag"
-names_to_exclude <- grep("flag", colnames(X_Lasso), value = TRUE)
-
-# Filter variables that do not contain the word "names"
-X_without_flag <- X_Lasso[, !colnames(X_Lasso) %in% names_to_exclude]
-
-# Generate interaction terms for the remaining variables
-X_Lasso_interaction <- model.matrix(~.^2, data.frame(X_without_flag))
-
-# Combine them
-X_Lasso <- cbind(X_Lasso, X_Lasso_interaction)
+# Remove the column "ind"
+X_Lasso <- X_Lasso[, colnames(X_Lasso)!= "ind"]
 
 ## Let's define the response vector Y.
 Y_Lasso <- Data_2012$fast_growing
@@ -1217,7 +1255,7 @@ Y_Lasso <- Data_2012$fast_growing
 ### Fit LASSO logistic regression model using glmnet 5 fold cross validation.
 set.seed(20231210)
 # Fit the model
-lasso_fit <- cv.glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, nfolds = 5)
+lasso_fit <- cv.glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, nfolds = 5, standardize = TRUE)
 
 # Get the optimal value of lambda
 lambda_optimal <- lasso_fit$lambda.min
@@ -1238,11 +1276,32 @@ RMSE_CV_Lasso <- sqrt(cvm_optimal)
 
 ```{r}
 # Fit the final model with the optimal lambda
-Lasso_optimal <- glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, lambda = lambda_optimal)
+Lasso_optimal <- glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, lambda = lambda_optimal, standardize = TRUE)
 ```
 
 
 ### Random Forest
+
+Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (mtry: Number of variables randomly sampled as candidates at each split)
+
+```{r}
+## Setting up the random forest
+# specifying the range of values for the tuning parameters
+
+mtry <- seq(4, 9, by = 1)
+
+# Setting up the grid
+grid <- expand.grid(mtry = mtry)
+
+# setting up the control
+control <- trainControl(method = "cv", number = 5)
+
+# tuning the model
+set.seed(20231210)
+
+# I set ntree = 150 for the sake of computation time.
+model_RF <- train(fast_growing ~ ., data = Data_2012, method = "rf", trControl = control, tuneGrid = grid, ntree = 150)
+```
 
 
 ## Model Performance
