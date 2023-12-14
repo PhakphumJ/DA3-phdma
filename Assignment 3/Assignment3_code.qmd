@@ -1443,7 +1443,7 @@ When making false positive, the government is giving support to the firms that a
 
 On the other hand, false negative in this case is not as costly because firms that are actually fast growing should be able to grow without the support. They may only grow slower without the government support.
 
-Based on the argument above, I would arbitrarily set the cost of false positive to be 1.5 times higher than that of false negative. I normalize the cost of false negative to be 100\$. Hence, the cost of false positive is 150\$.
+Based on the argument above, I would arbitrarily set the cost of false positive to be 1.3 times higher than that of false negative. I normalize the cost of false negative to be 100\$. Hence, the cost of false positive is 130\$.
 
 The expected loss function is as follows:
 
@@ -1455,7 +1455,7 @@ Next, I find the optimal threshold that minimizes the expected loss for each mod
 ### Find the optimal threshold that minimizes the expected loss.
 
 # cost of false positive
-cost_fp <- 150
+cost_fp <- 130
 
 # cost of false negative
 cost_fn <- 100
@@ -1975,6 +1975,147 @@ predicted_probs_RF <- Data_2012_hold_out %>%
 kable(head(predicted_probs_RF , 5))
 ```
 
+```{r}
+### Calculate the expected loss for each model on the hold-out set.
+
+## Logit
+# False positive rate.
+false_pos_rate_logit <- false_pos_logit / total_obs_logit
+
+# False negative rate.
+false_neg_rate_logit <- false_neg_logit / total_obs_logit
+
+# Expected loss.
+expected_loss_logit <- false_pos_rate_logit * cost_fp + false_neg_rate_logit * cost_fn
+
+## LASSO
+# False positive rate.
+false_pos_rate_lasso <- false_pos_lasso / total_obs_lasso
+
+# False negative rate.
+false_neg_rate_lasso <- false_neg_lasso / total_obs_lasso
+
+# Expected loss.
+expected_loss_lasso <- false_pos_rate_lasso * cost_fp + false_neg_rate_lasso * cost_fn
+
+## Random Forest
+# False positive rate.
+false_pos_rate_RF <- false_pos_RF / total_obs_RF
+
+# False negative rate.
+false_neg_rate_RF <- false_neg_RF / total_obs_RF
+
+# Expected loss.
+expected_loss_RF <- false_pos_rate_RF * cost_fp + false_neg_rate_RF * cost_fn
+
+```
+
+```{r}
+### Compile the results of expected loss into a table.
+
+# Create dataframe of expected loss.
+expected_loss <- data.frame(model = c("Logit", "LASSO", "Random Forest"),
+                            expected_loss = c(expected_loss_logit, expected_loss_lasso, expected_loss_RF))
+
+# Print expected loss.
+kable(expected_loss, digits = 2, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+```
+
 
 # Task 2
+
+We divide data into two dataset. First one contains only fimrs in manufacturing sector and the second one contains firms in all other sectors. *ind* = 2 is manufacturing sector. *ind* = 3 is service sector. sector.
+
+I pick the logistic regression model 2 as to carry out classisification in both datasets as it is the model that minimize the expected loss in Task 1. 
+
+The expected loss and the optimal threshold are the same as before. 
+
+```{r}
+Data_2012 %>% count(ind)
+```
+
+```{r}
+## Seperate both work and hold-out sets.
+
+# Create work set for manufacturing sector.
+Data_2012_manu <- Data_2012 %>%
+  filter(ind == 2)
+
+# Create hold-out set for manufacturing sector.
+Data_2012_hold_out_manu <- Data_2012_hold_out %>%
+  filter(ind == 2)
+
+# Create work set for service sector.
+Data_2012_service <- Data_2012 %>%
+  filter(ind == 3)
+
+# Create hold-out set for service sector.
+Data_2012_hold_out_service <- Data_2012_hold_out %>%
+  filter(ind == 3)
+```
+
+```{r}
+#### Let's do stuff with manufacturing sector first.
+### We already predict. 
+
+## Calculate RMSE.
+# Calculate RMSE for logit.
+RMSE_logit_manu <- RMSE((as.numeric(Data_2012_hold_out_manu$fast_growing)-1), Data_2012_hold_out_manu$predicted_probs_logit)
+
+## Calculate AUC
+# Calculate AUC for logit.
+AUC_logit_manu <- auc(Data_2012_hold_out_manu$fast_growing, Data_2012_hold_out_manu$predicted_probs_logit)
+
+### Get elements for confusion matrix.
+# Get true positives for logit.
+true_pos_logit_manu <- sum(Data_2012_hold_out_manu$True_pos_logit)
+
+# Get false positives for logit.
+false_pos_logit_manu <- sum(Data_2012_hold_out_manu$False_pos_logit)
+
+# Get false negatives for logit.
+false_neg_logit_manu <- sum(Data_2012_hold_out_manu$False_neg_logit)
+
+# Get true negatives for logit.
+true_neg_logit_manu <- sum(Data_2012_hold_out_manu$True_neg_logit)
+
+# Get total number of observations for logit.
+total_obs_logit_manu <- true_pos_logit_manu + false_pos_logit_manu + false_neg_logit_manu + true_neg_logit_manu
+
+# Get total positives for logit.
+total_pos_logit_manu <- true_pos_logit_manu + false_neg_logit_manu
+
+# Get total negatives for logit.
+total_neg_logit_manu <- true_neg_logit_manu + false_pos_logit_manu
+
+# Get total predicted positives for logit.
+total_pred_pos_logit_manu <- true_pos_logit_manu + false_pos_logit_manu
+
+# Get total predicted negatives for logit.
+total_pred_neg_logit_manu <- true_neg_logit_manu + false_neg_logit_manu
+
+# Get False positive rate for logit.
+false_pos_rate_logit_manu <- false_pos_logit_manu / total_obs_logit_manu
+
+# Get False negative rate for logit.
+false_neg_rate_logit_manu <- false_neg_logit_manu / total_obs_logit_manu
+
+# Get expected loss for logit.
+expected_loss_logit_manu <- false_pos_rate_logit_manu * cost_fp + false_neg_rate_logit_manu * cost_fn
+```
+
+```{r}
+### Create Summary Table for Manufacturing Sector. (RMSE, AUC, Expected Loss) (1 rows x 3 columns)
+
+Summary_logit_manu <- data.frame(RMSE = RMSE_logit_manu, AUC = AUC_logit_manu, Expected_Loss = expected_loss_logit_manu)
+
+# Add row names.
+rownames(Summary_logit_manu) <- "Manufacturing Sector"
+
+Summary_logit_manu
+
+
+```
+
 
