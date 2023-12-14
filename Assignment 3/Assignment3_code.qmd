@@ -1222,14 +1222,24 @@ lasso_fit <- cv.glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, nfolds 
 # Get the optimal value of lambda
 lambda_optimal <- lasso_fit$lambda.min
 
-# Fit the final model with the optimal lambda
 ```
 
 ```{r}
 ## Report the optimal lambda.
 cat("Optimal lambda:", lambda_optimal_interactions, "\n")
+
+## get the RMSE (in 5 test set) from lasso_fit corresponding the the optimal value of lambda.
+cvm_optimal <- lasso_fit$cvm[lasso_fit$lambda == lambda_optimal] # This is MSE.
+
+RMSE_CV_Lasso <- sqrt(cvm_optimal)
+
+
 ```
 
+```{r}
+# Fit the final model with the optimal lambda
+Lasso_optimal <- glmnet(X_Lasso, Y_Lasso, family = "binomial", alpha = 1, lambda = lambda_optimal)
+```
 
 
 ### Random Forest
