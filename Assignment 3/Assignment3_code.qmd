@@ -25,6 +25,7 @@ library(fastDummies)
 library(groupdata2)
 library(glmnet)
 library(pROC)
+library(randomForest)
 
 # Set Working Directory
 
@@ -1327,13 +1328,17 @@ print(logit_lasso_model)
 cat("Optimal lambda:", lambda_optimal, "\n")
 
 ## get the MAE (in 5 test set).
-MAE_lasso <- logit_lasso_model$resample$MAE
+RMSE_lasso_5f <- logit_lasso_model$resample$rmse
 
 ## RMSE
-RMSE_lasso <- sqrt(mean(MAE_lasso))
+RMSE_lasso <- sqrt(mean(RMSE_lasso_5f^2))
 ```
 
-We will retun back and converting fast_growing to a factor variable to be able to get AUC.
+```{r}
+## Extract AUC from the model.
+AUC_lasso <- mean(logit_lasso_model$resample$ROC)
+```
+
 
 
 ### Random Forest
@@ -1359,6 +1364,344 @@ set.seed(20231210)
 model_RF <- train(fast_growing ~ ., data = Data_2012[,!names(Data_2012) %in% c("ind")], method = "rf", trControl = control, tuneGrid = grid, ntree = 150, metric = "ROC")
 ```
 
+```{r}
+## get the optimal value of mtry
+mtry_optimal <- model_RF$bestTune$mtry
 
-## Model Performance
+# print
+cat("Optimal mtry:", mtry_optimal, "\n")
+```
+
+```{r}
+### Extracting RMSE and AUC from the model.
+RMSE_RF_5f <- model_RF$resample$rmse
+
+## RMSE
+RMSE_RF <- sqrt(mean(RMSE_RF_5f^2))
+
+## AUC
+AUC_RF <- mean(model_RF$resample$ROC)
+
+```
+
+### Compiling the results
+
+First, the results (RMSE, AUC) of all 5 logistic regression models are compiled.
+
+```{r}
+## Compile the results.
+# model name
+Model_Name <- c("Logit 1", "Logit 2", "Logit 3", "Logit 4", "Logit 5")
+
+# performance
+RMSE_Logit <- c(RMSE_Logit_1, RMSE_Logit_2, RMSE_Logit_3, RMSE_Logit_4, RMSE_Logit_5)
+
+AUC_Logit <- c(AUC_Logit_1, AUC_Logit_2, AUC_Logit_3, AUC_Logit_4, AUC_Logit_5)
+
+# Make a data frame.
+Logit_results <- data.frame(Model_Name, RMSE_Logit, AUC_Logit)
+
+
+# Show the results. Use kableExtra to make the table look nicer.
+
+kable(Logit_results, digits = 4, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+
+
+
+```
+
+Based on both RMSE and AUC, Logit 2 is the best model.
+
+Next, compare the results with the LASSO and random forest models.
+
+```{r}
+### Compare results of Logit 2, LASSO, and Random Forest.
+# model name
+Model_Name <- c("Logit 2", "LASSO", "Random Forest")
+
+# performance
+RMSE <- c(RMSE_Logit_2, RMSE_lasso, RMSE_RF)
+
+AUC <- c(AUC_Logit_2, AUC_lasso, AUC_RF)
+
+# Make a data frame.
+All_results <- data.frame(Model_Name, RMSE, AUC)
+
+# Show the results. Use kableExtra to make the table look nicer.
+
+kable(All_results, digits = 4, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+
+```
+
+Random forest has the best performance in terms of both RMSE and AUC, followed by LAASO and Logit 2.
+
+## Part 2: Minimizing expected loss.
+
+When making false positive, the government is giving support to the firms that are not actually fast growing. In general, this reduces the allocative efficiency in the market. In worse case scenario, the supoort goes to waste as firms exit the market or the support is the factor allowing zombie firms to sustain. 
+
+On the other hand, false negative in this case is not as costly because firms that are actually fast growing should be able to grow without the support. They may only grow slower without the government support.
+
+Based on the argument above, I would arbitrarily set the cost of false positive to be 1.5 times higher than that of false negative. I normalize the cost of false negative to be 100\$. Hence, the cost of false positive is 150\$.
+
+The expected loss function is as follows:
+
+$ E(Loss) = Cost of False Positive * P(False Positive) + Cost of False Negative * P(False Negative) $
+
+Next, I find the optimal threshold that minimizes the expected loss for each model (Logit 2, LASSO, and Random Forest) using 5-fold cross-validation.
+
+```{r}
+### Find the optimal threshold that minimizes the expected loss.
+
+# cost of false positive
+cost_fp <- 150
+
+# cost of false negative
+cost_fn <- 100
+
+# The range of threshold
+thresholds <- seq(0.45, 0.95, by = 0.025)
+
+## Logit 2
+
+num_folds <- 5
+
+cv_losses <- numeric(length(thresholds))
+
+# Loop over the thresholds
+for (i in seq_along(thresholds)) {
+  threshold <- thresholds[i]
+  total_loss <- 0
+  
+  # Perform cross-validation
+  for (fold in 1:num_folds) {
+    # Split the data into training and testing sets
+    train_data <- Data_2012[-folds[[fold]], ]
+    test_data <- Data_2012[folds[[fold]], ]
+    
+    # Fit the logistic regression model on the training data
+    # (assuming 'target_variable' is your dependent variable)
+    logit_model <- update(logit_1, . ~ . + net_profit_margin + current_ratio_cat + equity_to_assets_cat + flag_asset_problem + flag_curr_liab_problem + net_profit_margin_flag_low + net_profit_margin_flag_high, data = train_data)
+    
+    # Make predictions on the testing data
+    predicted_probs <- predict(logit_model, newdata = test_data, type = "response")
+    
+    ## Classify the observations based on the threshold
+    predicted_classes <- ifelse(predicted_probs > threshold, 1, 0)
+    
+    ## Calculate expected loss for the current threshold
+    # Create dummy: true positive.
+    True_pos <- ifelse(test_data$fast_growing == "Yes" & predicted_classes == 1, 1, 0)
+    
+    # Create dummy: false positive.
+    False_pos <- ifelse(test_data$fast_growing == "No" & predicted_classes == 1, 1, 0)
+    
+    # Create dummy: true negative.
+    True_neg <- ifelse(test_data$fast_growing == "No" & predicted_classes == 0, 1, 0)
+    
+    # Create dummy: false negative.
+    False_neg <- ifelse(test_data$fast_growing == "Yes" & predicted_classes == 0, 1, 0)
+    
+    # Calculate the P(False Positive)
+    P_fp <- sum(False_pos) / length(predicted_classes)
+    
+    # Calculate the P(False Negative)
+    P_fn <- sum(False_neg) / length(predicted_classes)
+    
+    # Calculate the expected loss
+    total_loss <- (cost_fp * P_fp) + (cost_fn * P_fn)
+
+  # Calculate average loss across folds for the current threshold
+  cv_losses[i] <- total_loss / num_folds
+  }
+}
+
+# Find the threshold that minimizes the expected loss
+optimal_threshold_logit <- thresholds[which.min(cv_losses)]
+
+# Store the minimum expected loss
+min_loss_logit <- min(cv_losses)
+
+
+```
+
+```{r}
+# Print the optimal threshold for logit 2
+cat("Optimal Threshold for Logit 2:", optimal_threshold_logit, "\n")
+```
+
+
+```{r}
+## LASSO
+tuned_logit_lasso_model <- logit_lasso_model$finalModel
+
+cv_losses <- numeric(length(thresholds))
+
+# Loop over the thresholds
+for (i in seq_along(thresholds)) {
+  threshold <- thresholds[i]
+  total_loss <- 0
+  
+  # Perform cross-validation
+  for (fold in 1:num_folds) {
+    # Split the data into training and testing sets
+    train_data <- Data_2012[-folds[[fold]], ]
+    test_data <- Data_2012[folds[[fold]], ]
+    
+    
+    # Make predictions on the testing data
+    newx_lasso = model.matrix(formula(paste0("fast_growing ~", paste0(Lasso_vars, collapse = " + "))), test_data)[, -1]
+    
+    predicted_probs <- predict(tuned_logit_lasso_model, newdata = test_data, type = "response", newx = newx_lasso, s = lambda_optimal)
+    
+    ## Classify the observations based on the threshold
+    predicted_classes <- ifelse(predicted_probs > threshold, 1, 0)
+    
+    ## Calculate expected loss for the current threshold
+    # Create dummy: true positive.
+    True_pos <- ifelse(test_data$fast_growing == "Yes" & predicted_classes == 1, 1, 0)
+    
+    # Create dummy: false positive.
+    False_pos <- ifelse(test_data$fast_growing == "No" & predicted_classes == 1, 1, 0)
+    
+    # Create dummy: true negative.
+    True_neg <- ifelse(test_data$fast_growing == "No" & predicted_classes == 0, 1, 0)
+    
+    # Create dummy: false negative.
+    False_neg <- ifelse(test_data$fast_growing == "Yes" & predicted_classes == 0, 1, 0)
+    
+    # Calculate the P(False Positive)
+    P_fp <- sum(False_pos) / length(predicted_classes)
+    
+    # Calculate the P(False Negative)
+    P_fn <- sum(False_neg) / length(predicted_classes)
+    
+    # Calculate the expected loss
+    total_loss <- (cost_fp * P_fp) + (cost_fn * P_fn)
+
+  # Calculate average loss across folds for the current threshold
+  cv_losses[i] <- total_loss / num_folds
+  }
+}
+
+# Find the threshold that minimizes the expected loss
+optimal_threshold_lasso <- thresholds[which.min(cv_losses)]
+
+# Store the minimum expected loss
+min_loss_lasso <- min(cv_losses)
+
+```
+
+
+```{r}
+# Print the optimal threshold for LASSO
+cat("Optimal Threshold for LASSO:", optimal_threshold_lasso, "\n")
+
+```
+
+```{r}
+## Random Forest
+
+cv_losses <- numeric(length(thresholds))
+
+# Loop over the thresholds
+for (i in seq_along(thresholds)) {
+  threshold <- thresholds[i]
+  total_loss <- 0
+  
+  # Perform cross-validation
+  for (fold in 1:num_folds) {
+    # Split the data into training and testing sets
+    train_data <- Data_2012[-folds[[fold]], ]
+    test_data <- Data_2012[folds[[fold]], ]
+    
+    # Fit the random forest model on the training data
+    
+    predictors <- train_data[, -which(names(train_data) %in% c("fast_growing"))]
+    
+    model_RF_loss <- randomForest(x = predictors, y = train_data$fast_growing, ntree = 150, mtry = mtry_optimal)
+    
+    # Make predictions on the testing data
+    predicted_probs <- predict(model_RF_loss, newdata = test_data, type = "prob")
+    
+    ## Classify the observations based on the threshold
+    predicted_classes <- ifelse(predicted_probs > threshold, 1, 0)
+    
+    ## Calculate expected loss for the current threshold
+    # Create dummy: true positive.
+    True_pos <- ifelse(test_data$fast_growing == "Yes" & predicted_classes == 1, 1, 0)
+    
+    # Create dummy: false positive.
+    False_pos <- ifelse(test_data$fast_growing == "No" & predicted_classes == 1, 1, 0)
+    
+    # Create dummy: true negative.
+    True_neg <- ifelse(test_data$fast_growing == "No" & predicted_classes == 0, 1, 0)
+    
+    # Create dummy: false negative.
+    False_neg <- ifelse(test_data$fast_growing == "Yes" & predicted_classes == 0, 1, 0)
+    
+    # Calculate the P(False Positive)
+    P_fp <- sum(False_pos) / length(predicted_classes)
+    
+    # Calculate the P(False Negative)
+    P_fn <- sum(False_neg) / length(predicted_classes)
+    
+    # Calculate the expected loss
+    total_loss <- (cost_fp * P_fp) + (cost_fn * P_fn)
+
+  # Calculate average loss across folds for the current threshold
+  cv_losses[i] <- total_loss / num_folds
+  }
+}
+
+# Find the threshold that minimizes the expected loss
+optimal_threshold_RF <- thresholds[which.min(cv_losses)]
+
+# Store the minimum expected loss
+min_loss_RF <- min(cv_losses)
+
+
+```
+
+```{r}
+# Print the optimal threshold for Random Forest
+cat("Optimal Threshold for Random Forest:", optimal_threshold_RF, "\n")
+
+
+```
+
+```{r}
+### Compiling the results into a table.
+
+# Create a data frame with the results
+results_loss <- data.frame(
+  Model = c("Logit 2", "LASSO", "Random Forest"),
+  Optimal_Threshold = c(optimal_threshold_logit, optimal_threshold_lasso, optimal_threshold_RF),
+  Expected_Loss = c(min_loss_logit, min_loss_lasso, min_loss_RF)
+)
+
+# Print the results
+kable(results_loss, digits = 4, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
+```
+
+
+
+
+## Part 3: Confusion Matrix
+```{r}
+## Re-fit the models on the entire work set
+# Fit the logit model
+
+best_logit_model <- update(logit_1, . ~ . + net_profit_margin + current_ratio_cat + equity_to_assets_cat + flag_asset_problem + flag_curr_liab_problem + net_profit_margin_flag_low + net_profit_margin_flag_high, data = Data_2012)
+
+# Fit the LASSO model
+
+
+```
+
+
+
+# Task 2
 
