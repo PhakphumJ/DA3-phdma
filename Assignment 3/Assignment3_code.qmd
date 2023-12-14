@@ -4,6 +4,7 @@ author: "Phakphum Jatupitpornchan"
 format: html
 execute: 
   echo: false
+  warning: false
 ---
 
 # Task 1
@@ -2010,17 +2011,51 @@ expected_loss_RF <- false_pos_rate_RF * cost_fp + false_neg_rate_RF * cost_fn
 
 ```
 
+
 ```{r}
-### Compile the results of expected loss into a table.
+### Obtain RMSE and AUC in the hold-out set.
+## Logit
 
-# Create dataframe of expected loss.
-expected_loss <- data.frame(model = c("Logit", "LASSO", "Random Forest"),
-                            expected_loss = c(expected_loss_logit, expected_loss_lasso, expected_loss_RF))
+# RMSE.
+RMSE_logit_hold_out <- RMSE((as.numeric(Data_2012_hold_out$fast_growing)-1), Data_2012_hold_out$predicted_probs_logit)
 
-# Print expected loss.
-kable(expected_loss, digits = 2, align = "c") %>%
+# AUC.
+AUC_logit_hold_out <- auc(roc(Data_2012_hold_out$fast_growing, Data_2012_hold_out$predicted_probs_logit))
+
+## LASSO
+
+# RMSE.
+RMSE_lasso_hold_out <- RMSE((as.numeric(Data_2012_hold_out$fast_growing)-1), Data_2012_hold_out$predicted_probs_lasso)
+
+# AUC.
+AUC_lasso_hold_out <- auc(roc(Data_2012_hold_out$fast_growing, Data_2012_hold_out$predicted_probs_lasso))
+
+## Random Forest
+
+# RMSE.
+RMSE_RF_hold_out <- RMSE((as.numeric(Data_2012_hold_out$fast_growing)-1), Data_2012_hold_out$predicted_probs_RF)
+
+# AUC.
+AUC_RF_hold_out <- auc(roc(Data_2012_hold_out$fast_growing, Data_2012_hold_out$predicted_probs_RF))
+```
+
+```{r}
+### Compile the results of RMSE, AUC, and expected loss into a table.
+
+# Create dataframe of RMSE, AUC, and expected loss.
+RMSE_AUC_expected_loss <- data.frame(model = c("Logit", "LASSO", "Random Forest"),
+                                     RMSE = c(RMSE_logit_hold_out, RMSE_lasso_hold_out, RMSE_RF_hold_out),
+                                     AUC = c(AUC_logit_hold_out, AUC_lasso_hold_out, AUC_RF_hold_out),
+                                     expected_loss = c(expected_loss_logit, expected_loss_lasso, expected_loss_RF))
+
+# Print the table
+kable(RMSE_AUC_expected_loss, digits = 4, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 ```
+
+```{r}
+```
+
 
 
 # Task 2
@@ -2113,9 +2148,81 @@ Summary_logit_manu <- data.frame(RMSE = RMSE_logit_manu, AUC = AUC_logit_manu, E
 # Add row names.
 rownames(Summary_logit_manu) <- "Manufacturing Sector"
 
-Summary_logit_manu
 
 
+```
+```{r}
+#### Do the same for service sector.
+### We already predict.
+
+## Calculate RMSE.
+# Calculate RMSE for logit.
+RMSE_logit_service <- RMSE((as.numeric(Data_2012_hold_out_service$fast_growing)-1), Data_2012_hold_out_service$predicted_probs_logit)
+
+## Calculate AUC
+# Calculate AUC for logit.
+
+AUC_logit_service <- auc(Data_2012_hold_out_service$fast_growing, Data_2012_hold_out_service$predicted_probs_logit)
+
+### Get elements for confusion matrix.
+# Get true positives for logit.
+true_pos_logit_service <- sum(Data_2012_hold_out_service$True_pos_logit)
+
+# Get false positives for logit.
+false_pos_logit_service <- sum(Data_2012_hold_out_service$False_pos_logit)
+
+# Get false negatives for logit.
+false_neg_logit_service <- sum(Data_2012_hold_out_service$False_neg_logit)
+
+# Get true negatives for logit.
+true_neg_logit_service <- sum(Data_2012_hold_out_service$True_neg_logit)
+
+# Get total number of observations for logit.
+total_obs_logit_service <- true_pos_logit_service + false_pos_logit_service + false_neg_logit_service + true_neg_logit_service
+
+# Get total positives for logit.
+total_pos_logit_service <- true_pos_logit_service + false_neg_logit_service
+
+# Get total negatives for logit.
+total_neg_logit_service <- true_neg_logit_service + false_pos_logit_service
+
+# Get total predicted positives for logit.
+total_pred_pos_logit_service <- true_pos_logit_service + false_pos_logit_service
+
+# Get total predicted negatives for logit.
+total_pred_neg_logit_service <- true_neg_logit_service + false_neg_logit_service
+
+# Get False positive rate for logit.
+false_pos_rate_logit_service <- false_pos_logit_service / total_obs_logit_service
+
+# Get False negative rate for logit.
+false_neg_rate_logit_service <- false_neg_logit_service / total_obs_logit_service
+
+# Get expected loss for logit.
+expected_loss_logit_service <- false_pos_rate_logit_service * cost_fp + false_neg_rate_logit_service * cost_fn
+```
+
+```{r}
+### Create Summary Table for Service Sector. (RMSE, AUC, Expected Loss) (1 rows x 3 columns)
+
+Summary_logit_service <- data.frame(RMSE = RMSE_logit_service, AUC = AUC_logit_service, Expected_Loss = expected_loss_logit_service)
+
+# Add row names.
+rownames(Summary_logit_service) <- "Service Sector"
+
+```
+
+```{r}
+## rbind the two summary tables.
+Summary_logit <- rbind(Summary_logit_manu, Summary_logit_service)
+
+# make AUC numeric.
+Summary_logit$AUC <- as.numeric(Summary_logit$AUC)
+
+# Print
+# Print the results
+kable(Summary_logit, digits = 4, align = "c") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 ```
 
 
