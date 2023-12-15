@@ -1,18 +1,6 @@
----
-title: "Assignment3_code"
-author: "Phakphum Jatupitpornchan"
-format: html
-execute: 
-  echo: false
-  warning: false
----
+###### Task 1
+### Importing Data
 
-# Task 1
-Importing Data
-```{r}
-#| warning: false
-#| echo: false
-### Use packages, Import Data
 rm(list=ls())
 # Import Libraries
 library(readr)
@@ -36,94 +24,55 @@ setwd("D:/Onedrive-CEU/OneDrive - Central European University/CEU/Prediction wit
 
 Data_panel <- read_csv("cs_bisnode_panel.csv")
 
-
-```
-
-```{r}
-# inspect year in Data_panel
+## inspect year in Data_panel
 Data_panel %>% 
   group_by(year) %>% 
   summarise(n = n())
-```
 
-```{r}
-# add all missing year and comp_id combinations -
-
+## add all missing year and comp_id combinations -
 Data_panel <- Data_panel %>%
   complete(year, comp_id)
-```
 
-
-## Sample Design (part 1)
-
-```{r}
+#### Sample Design (part 1)
 ## Restrict to those with sales > 6,000 eur
 Data_panel <- Data_panel %>% 
   filter(sales > 6000)
-```
 
-
-### Dealing with Missing Values (Part 1)
-
-```{r}
-## Inspect NAs in Data_panel showing the most NAs first.
+#### Dealing with Missing Values (Part 1)
+### Inspect NAs in Data_panel showing the most NAs first.
 Data_panel %>% ungroup() %>%
   summarise_all(funs(sum(is.na(.)))) %>% 
   gather(variable, value) %>% 
   arrange(desc(value))
-```
 
-D, finished_prod, wages, COGS, net_dom_sales, net_exp_sales, exit_year, exit_date are missing from almost all observations. Hence, we will drop these variables.
+# the missing values in founded_year, ceo_count, foreign, female, inoffice_days, 
+# gender, and origin can imputed by looking at the next year. For example:
 
-birth_year will be used to calculate CEO age, which is an important variable. Hence, I drop observations with missing birth_year.
-
-Based, on further inspection, I found that the missing values in founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin can imputed by looking at the next year. For example:
-
-
-```{r}
 ## Print the value of founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin of firm 1003200.
-
 Data_panel %>% filter(comp_id == 1003200) %>%
-  select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)
+  select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)  
 
-```
 
-```{r}
 Data_panel %>% filter(comp_id == 1046213) %>%
   select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)
 
-```
-
-```{r}
 Data_panel %>% filter(comp_id == 1084759
 ) %>%
   select(comp_id, year, founded_year, ceo_count, foreign, female, inoffice_days, gender, origin)
-```
 
-However, it is not always the case that the values of these values are the same in each year. Hence, flag variables will be created to indicate that these are imputed.
-
-Similar things can be observed with *birth_year*. It can be imputed by using the value in the next year. For example:
-
-```{r}
+# Similar things can be observed with *birth_year*. 
+# It can be imputed by using the value in the next year. For example:
 Data_panel %>% filter(comp_id == 1046213) %>%
   select(comp_id, year, ceo_count, female, birth_year)
-```
 
-However, it is possible that in some firms, CEO may not be the same person in each year. Hence, flag variables will be created to indicate that these are imputed.
-
-
-```{r}
-# drop variables with too many NAs
+### drop variables with too many NAs
 Data_panel <- Data_panel %>%
   select(-c(D, COGS, finished_prod, net_dom_sales, net_exp_sales, wages))
 
-# drop irrelevant variables
+### drop irrelevant variables
 Data_panel <- Data_panel %>%
   select(-c(exit_year, exit_date))
-```
 
-
-```{r}
 ### Imputing missing values in founded_year, ceo_count, foreign, female, inoffice_days, gender, and origin.
 
 ## Impute missing values in founded_year with the lead year.
@@ -171,23 +120,15 @@ for (i in 1:10) {
     mutate(origin = ifelse(is.na(origin), lead(origin), origin))
 }
 
-```
-
-```{r}
 ### Imputing missing values in birth_year.
 for (i in 1:10) {
   Data_panel <- Data_panel %>%
     mutate(birth_year = ifelse(is.na(birth_year), lead(birth_year), birth_year),
            flag_miss_birth_year = as.numeric(is.na(birth_year)))
 }
-```
-
 
 ### Fixing items that cannot be negative.
-Items that cannot be negative: *extra_inc*, *inventories*, *personnel_exp*, *curr_liab*, *fixed_assets*, *curr_assets*, *intang_assets*
-
-```{r}
-### assets can't be negative. Change them to 0 and add a flag.
+## assets can't be negative. Change them to 0 and add a flag.
 Data_panel <- Data_panel  %>%
   mutate(flag_asset_problem=ifelse(intang_assets<0 | curr_assets<0 | fixed_assets<0,1,0  ))
 table(Data_panel$flag_asset_problem)
@@ -197,9 +138,7 @@ Data_panel <- Data_panel %>%
          curr_assets = ifelse(curr_assets < 0, 0, curr_assets),
          fixed_assets = ifelse(fixed_assets < 0, 0, fixed_assets))
 
-```
 
-```{r}
 ## Do the same for extra_inc
 Data_panel <- Data_panel  %>%
   mutate(flag_extra_inc_problem=ifelse(extra_inc<0,1,0  ))
@@ -227,15 +166,8 @@ Data_panel <- Data_panel  %>%
 
 Data_panel <- Data_panel %>%
   mutate(curr_liab = ifelse(curr_liab < 0, 0, curr_liab))
-```
 
-
-
-## Label Engineering
-
-The growth indicator I am interested in is profit. However, since profit can be negative, I will use sales/total cost instead. In the dataset, there is no information for total cost. However, this can be calculated by subtracting profit from sales and extra income.
-
-```{r}
+#### Label Engineering
 ## Create variable total_cost
 Data_panel <- Data_panel %>% 
   mutate(total_cost = sales + extra_inc - profit_loss_year )
@@ -243,11 +175,8 @@ Data_panel <- Data_panel %>%
 ## Create variable sales_cost_ratio
 Data_panel <- Data_panel %>% 
   mutate(sales_cost_ratio = sales/total_cost)
-```
 
-
-```{r}
-### Create variable growth_rate in sales_cost_ratio for each firm in each year
+## Create variable growth_rate in sales_cost_ratio for each firm in each year
 
 ## arrange Data_panel by comp_id and year.
 Data_panel <- Data_panel %>% 
@@ -257,9 +186,7 @@ Data_panel <- Data_panel %>%
 Data_panel <- Data_panel %>% 
   group_by(comp_id) %>% 
   mutate(growth_rate = (sales_cost_ratio/lag(sales_cost_ratio) - 1)*100)
-```
 
-```{r}
 ## Let's plot distribution of growth_rate
 Data_panel %>% 
   ggplot(aes(x = growth_rate)) +
@@ -268,22 +195,12 @@ Data_panel %>%
        x = "growth_rate (%)",
        y = "Count") + xlim(-150, 300)
 
-```
-
-
-The outcome variable (*fast_growing*) is an indicator of whether the firm achieves an **outstanding annual growth rate in *sales_cost_ratio* for the next 2 consecutive years**. 
-
-Outstanding annual growth rate is defined as having the highest 25% growth rate in the industry that year (4th quartile). 
-
-```{r}
 ## Create variable forth_quartile_growth_rate for each industry
 Data_panel <- Data_panel %>% 
   group_by(ind, year) %>% 
   mutate(forth_quartile_growth_rate = quantile(growth_rate, 0.75, na.rm = TRUE))
-```
 
 
-```{r}
 ### Create variable fast_growing
 ## Create variable growth_rate_t+1
 Data_panel <- Data_panel %>% 
@@ -333,46 +250,24 @@ Data_panel$outstanding_growth_rate_t2[is.na(Data_panel$outstanding_growth_rate_t
 Data_panel <- Data_panel %>% 
   select(-c(growth_rate_t1, growth_rate_t2, forth_quartile_growth_rate_t1, forth_quartile_growth_rate_t2))
 
-
-```
-
-
-```{r}
 ## Let's examine outstanding_growth_rate_t1
 Data_panel %>% 
   group_by(year) %>%
   count(outstanding_growth_rate_t1)
-```
 
-
-```{r}
 ## Lets' examine fast_growing
 Data_panel %>% 
   group_by(year) %>%
   count(fast_growing)
-```
-We have a problem of class imbalance as the fast growing companies only makes a small proportion of the sample. We will deal with this by downsampling the majority class later. 
 
-
-## Feature Engineering 
-
-```{r}
-## Ungroup
+#### Feature Engineering 
 Data_panel <- Data_panel %>%
   ungroup()
-```
 
-
-```{r}
 ## Create variable age
 Data_panel <- Data_panel %>% 
   mutate(age = year - founded_year)
 
-```
-
-
-#### Generate variables new variables
-```{r}
 ### CEO age
 ## Drop those without birth_year
 Data_panel <- Data_panel %>%
@@ -395,10 +290,8 @@ Data_panel <- Data_panel %>%
 ## Drop ceo_age_old
 Data_panel <- Data_panel %>%
   select(-ceo_age_old)
-```
 
-```{r}
-# change some industry category codes
+## change some industry category codes
 Data_panel <- Data_panel %>%
   mutate(ind2_cat = ind2 %>%
            ifelse(. > 56, 60, .)  %>%
@@ -406,36 +299,25 @@ Data_panel <- Data_panel %>%
            ifelse(. < 55 & . > 35, 40, .) %>%
            ifelse(. == 31, 30, .) %>%
            ifelse(is.na(.), 99, .)
-           )
+  )
 
 # drop ind2
 Data_panel <- Data_panel %>%
   select(-ind2)
-```
 
-```{r}
-### Examine value of ind2_cat
+# Examine value of ind2_cat
 Data_panel %>%
   group_by(ind2_cat) %>%
   count()
-```
 
-```{r}
-## Drop those with ind2_cat = 35
+# Drop those with ind2_cat = 35
 Data_panel <- Data_panel %>%
   filter(ind2_cat != 35)
-```
 
-```{r}
 ## Make ind2_cat a factor variable
 Data_panel <- Data_panel %>%
   mutate(ind2_cat = factor(ind2_cat, levels = c(20, 26, 27, 28, 30, 32, 33, 40, 55, 56, 60, 99)))
-```
 
-
-
-
-```{r}
 ### create factors variables urban_m, gender_m, region_m.
 Data_panel <- Data_panel %>%
   mutate(gender_m = factor(gender, levels = c("female", "male", "mix")),
@@ -448,11 +330,7 @@ Data_panel <- Data_panel %>%
 # drop origin
 Data_panel <- Data_panel %>% 
   select(-origin)
-```
 
-
-
-```{r}
 ### create foreign_management variable (binary)
 Data_panel <- Data_panel %>%
   mutate(foreign_management = as.numeric(foreign >= 0.5))
@@ -460,28 +338,18 @@ Data_panel <- Data_panel %>%
 # drop foreign
 Data_panel <- Data_panel %>% 
   select(-foreign)
-```
 
-```{r}
 ### Create Total Assets
 
 # generate total assets
 Data_panel <- Data_panel %>%
   mutate(total_assets = intang_assets + curr_assets + fixed_assets)
 
-
-```
-
-Items that cannot be negative: *extra_inc*, *inventories*, *personnel_exp*, *curr_liab*, *fixed_assets*, *curr_assets*, *intang_assets*
-
-```{r}
-#### Create Financial Ratios 
+### Create Financial Ratios 
 ## Profitability Ratio: Net Profit Margin.
 Data_panel <- Data_panel %>%
   mutate(net_profit_margin = profit_loss_year / sales)
-```
 
-```{r}
 ## Current Ratio: Current Assets-to-Current Liabilities Ratio. How well they manage their short-term liquidity.
 Data_panel <- Data_panel %>%
   mutate(current_ratio = curr_assets / curr_liab)
@@ -501,11 +369,8 @@ Data_panel <- Data_panel %>%
 # drop current_ratio
 Data_panel <- Data_panel %>%
   select(-current_ratio)
-```
 
-
-```{r}
-### Solvency Ratio: Equity-to-Assets Ratio.
+## Solvency Ratio: Equity-to-Assets Ratio.
 ## Create the variable
 Data_panel <- Data_panel %>%
   mutate(equity_to_assets = share_eq / total_assets)
@@ -527,50 +392,27 @@ Data_panel <- Data_panel %>%
 Data_panel <- Data_panel %>%
   select(-equity_to_assets)
 
-```
-
-
-```{r}
 ## Efficiency Ratio: Inventory-to-Sales Ratio. How well they manage their inventory.
 Data_panel <- Data_panel %>%
   mutate(inventory_to_sales = inventories / sales)
-```
 
-
-
-Fixed assets is important as it captures the capital intensity of the firm. The change in fixed assets is also important as it captures the investment activity of the firm. 
-```{r}
-#### Create Fixed Assets Ratio
+## Create Fixed Assets Ratio
 Data_panel <- Data_panel %>%
   mutate(fixed_assets_ratio = fixed_assets / total_assets)
 
 ## Create Fixed Assets Growth Rate
 Data_panel <- Data_panel %>% group_by(comp_id) %>%
   mutate(fixed_assets_growth_rate = (fixed_assets_ratio/lag(fixed_assets_ratio) - 1)*100)
-```
 
-Similarly, intangible assets is important in the same way as it captures the assets acquired mainly for the purpose of long-term growth.
-
-```{r}
-#### Create Intangible Assets Ratio
+## Create Intangible Assets Ratio
 Data_panel <- Data_panel %>%
   mutate(intang_assets_ratio = intang_assets / total_assets)
 
 ## Create Intangible Assets Growth Rate
 Data_panel <- Data_panel %>% group_by(comp_id) %>%
   mutate(intang_assets_growth_rate = (intang_assets_ratio/lag(intang_assets_ratio) - 1)*100)
-```
 
-
-Personnel expenditure is also another important variable. I create Personnel expenditure/ average number of employees. This may capture the talent level of the employees. The change in this ratio is also meaningful.
-
-The growth of the number of employees is also potentially important. I create the growth rate of the number of employees.
-
-
-
-```{r}
-
-### number emp, very noisy measure
+### number emp, imputing
 ## Impute missing values with mean in same industry and similar sales number. And add a flag variable.
 
 # Seperate sales into 5 groups.
@@ -593,9 +435,7 @@ Data_panel <- Data_panel %>%
 # drop sales_group
 Data_panel <- Data_panel %>%
   select(-sales_group)
-```
 
-```{r}
 ### personnel expenditure per employee
 Data_panel <- Data_panel %>%
   mutate(personnel_exp_per_emp = personnel_exp / emp_avg)
@@ -603,9 +443,7 @@ Data_panel <- Data_panel %>%
 ### personnel expenditure per employee growth rate
 Data_panel <- Data_panel %>% group_by(comp_id) %>%
   mutate(personnel_exp_per_emp_growth_rate = (personnel_exp_per_emp/lag(personnel_exp_per_emp) - 1)*100)
-```
 
-```{r}
 ### Growth in number of employees
 Data_panel <- Data_panel %>% group_by(comp_id) %>%
   mutate(emp_growth_rate = (emp_avg/lag(emp_avg) - 1)*100)
@@ -613,39 +451,25 @@ Data_panel <- Data_panel %>% group_by(comp_id) %>%
 ## Ungroup
 Data_panel <- Data_panel %>%
   ungroup()
-```
 
-```{r}
 ### There's Inf produced. Replace all Inf in all variables with NA.
 Data_panel <- Data_panel %>%
   mutate_all(funs(replace(., is.infinite(.), NA)))
 
-```
-
-
 ### Dealing with missing values again (Part 2).
 
-
-```{r}
-### Keep only relevant variables for convenience.
+## Keep only relevant variables for convenience.
 Data_panel_focus <- Data_panel %>% select(comp_id, year, fast_growing, ceo_count, female, inoffice_days, ind2_cat, ind, urban_m, region_m, flag_miss_founded_year, flag_miss_birth_year, growth_rate, age, ceo_age_young, ceo_age_middle, gender_m, origin_m, foreign_management, flag_asset_problem, net_profit_margin, inventory_to_sales, fixed_assets_ratio, fixed_assets_growth_rate, intang_assets_ratio, intang_assets_growth_rate, emp_avg, emp_growth_rate, flag_miss_emp, personnel_exp_per_emp, personnel_exp_per_emp_growth_rate, current_ratio_cat, equity_to_assets_cat, flag_personnel_exp_problem, flag_curr_liab_problem, flag_inventories_problem, flag_extra_inc_problem)
 
 # remove Data_panel
 rm(Data_panel)
-```
 
-
-
-```{r}
 ## Inspect NAs in Data_panel showing the most NAs first. Do it again.
 Data_panel_focus %>% ungroup() %>%
   summarise_all(funs(sum(is.na(.)))) %>% 
   gather(variable, value) %>% 
   arrange(desc(value))
 
-```
-
-```{r}
 ## This is weird. I think this is because many firms don't have intangible assets, fixed assets, or employees (denominator = 0). Let's check this. 
 
 # count number of firms with intangible assets ratio = 0.
@@ -660,10 +484,7 @@ Data_panel_focus %>% ungroup() %>%
 
 Data_panel_focus <- Data_panel_focus %>% group_by(comp_id) %>%
   mutate(intang_assets_growth_rate = ifelse(lag(intang_assets_ratio) == 0 & intang_assets_ratio == 0, 0, intang_assets_growth_rate))
-```
 
-
-```{r}
 ## Let's examine fixed_assets_ratio, count number of firms with fixed_assets_ratio = 0.
 Data_panel_focus %>% ungroup() %>%
   filter(fixed_assets_ratio == 0) %>%
@@ -673,9 +494,7 @@ Data_panel_focus %>% ungroup() %>%
 
 Data_panel_focus <- Data_panel_focus %>% group_by(comp_id) %>%
   mutate(fixed_assets_growth_rate = ifelse(lag(fixed_assets_ratio) == 0 & fixed_assets_ratio == 0, 0, fixed_assets_growth_rate))
-```
 
-```{r}
 ## Let's examine personnel_exp_per_emp, count number of firms with personnel_exp_per_emp = 0.
 Data_panel_focus %>% ungroup() %>%
   filter(personnel_exp_per_emp == 0) %>%
@@ -686,54 +505,31 @@ Data_panel_focus %>% ungroup() %>%
 Data_panel_focus <- Data_panel_focus %>% group_by(comp_id) %>%
   mutate(personnel_exp_per_emp_growth_rate = ifelse(lag(personnel_exp_per_emp) == 0 & personnel_exp_per_emp == 0, 0, personnel_exp_per_emp_growth_rate))
 
-```
-
-
-```{r}
 # count number of firms with employees = 0.
 Data_panel_focus %>% ungroup() %>%
   filter(emp_avg == 0) %>%
   summarise(n = n())
-```
 
-
-```{r}
 ## Restrict Data_panel_focus to 2010-2013
 
 Data_panel_focus <- Data_panel_focus %>% 
   filter(year >= 2010 & year <= 2013)
-```
 
-
-```{r}
 ## Drop those with missing values in growth_rate since these are firms who did not appear in year t-1. 
 Data_panel_focus <- Data_panel_focus %>% 
   filter(!is.na(growth_rate))
 
-```
-
-
-```{r}
 ## Inspect NAs in Data_panel showing the most NAs first. Do it again.
 Data_panel_focus %>% ungroup() %>%
   summarise_all(funs(sum(is.na(.)))) %>% 
   gather(variable, value) %>% 
   arrange(desc(value))
-```
 
-After cleaning, only a few missing values are left. These observations are dropped.
-
-```{r}
 ## Drop observations with missing values.
 Data_panel_focus <- Data_panel_focus %>% 
   drop_na()
 
-```
-
-
 ### Winsorize and Simplyfying Variables 
-
-```{r}
 ### Let's examine the distribution of the variables first.
 ## Let's plot inventory_to_sales
 Data_panel_focus %>%
@@ -742,21 +538,14 @@ Data_panel_focus %>%
   labs(title = "Distribution of Inventory-to-Sales Ratio",
        x = "Inventory-to-Sales Ratio",
        y = "Count") + xlim(0, 1.5) + ylim(0, 7500)
-```
-There's a few outliers. I winsorize at 1.00.
+# There's a few outliers. I winsorize at 1.00.
 
-```{r}
 ## Winsorize inventory_to_sales at 1.00. Create a flag variable.
 
 Data_panel_focus <- Data_panel_focus %>% 
   mutate(inventory_to_sales_flag = ifelse(inventory_to_sales > 1.00, 1, 0),
          inventory_to_sales = ifelse(inventory_to_sales > 1.00, 1.00, inventory_to_sales))
 
-
-```
-
-
-```{r}
 ## Let's plot net_profit_margin
 Data_panel_focus %>%
   ggplot(aes(x = net_profit_margin)) +
@@ -764,11 +553,9 @@ Data_panel_focus %>%
   labs(title = "Distribution of Net Profit Margin",
        x = "Net Profit Margin",
        y = "Count") + xlim(-3, 2) + ylim(0, 10000)
-```
 
-Winsorize at -1.50 and 0.80.
+# Winsorize at -1.50 and 0.80.
 
-```{r}
 ## Winsorize net_profit_margin at -1.50 and 0.80. Create two flag variables.
 
 Data_panel_focus <- Data_panel_focus %>% 
@@ -777,11 +564,6 @@ Data_panel_focus <- Data_panel_focus %>%
          net_profit_margin = ifelse(net_profit_margin < -1.50, -1.50, net_profit_margin),
          net_profit_margin = ifelse(net_profit_margin > 0.80, 0.80, net_profit_margin))
 
-
-```
-
-
-```{r}
 ## Let's plot fixed_assets_ratio
 Data_panel_focus %>%
   ggplot(aes(x = fixed_assets_ratio)) +
@@ -789,11 +571,8 @@ Data_panel_focus %>%
   labs(title = "Distribution of Fixed Assets Ratio",
        x = "Fixed Assets Ratio",
        y = "Count") + xlim(0, 1.5) + ylim(0, 7500)
-```
+# Leave it as it is.
 
-Leave it as it is.
-
-```{r}
 ## Let's plot fixed_assets_growth_rate
 Data_panel_focus %>%
   ggplot(aes(x = fixed_assets_growth_rate)) +
@@ -801,19 +580,17 @@ Data_panel_focus %>%
   labs(title = "Distribution of Fixed Assets Growth Rate",
        x = "Fixed Assets Growth Rate",
        y = "Count") + xlim(-150, 150) + ylim(0, 5000)
-```
 
-Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
+# Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
 
-```{r}
 ## Catagorize fixed_assets_growth_rate into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
 
 Data_panel_focus <- Data_panel_focus %>%
   mutate(fixed_assets_growth_rate_cat = case_when(fixed_assets_growth_rate == -100 ~ 1,
-                                                   fixed_assets_growth_rate > -100 & fixed_assets_growth_rate <= -50 ~ 2,
-                                                   fixed_assets_growth_rate > -50 & fixed_assets_growth_rate <= 0 ~ 3,
-                                                   fixed_assets_growth_rate > 0 & fixed_assets_growth_rate <= 50 ~ 4,
-                                                   fixed_assets_growth_rate > 50 ~ 5))
+                                                  fixed_assets_growth_rate > -100 & fixed_assets_growth_rate <= -50 ~ 2,
+                                                  fixed_assets_growth_rate > -50 & fixed_assets_growth_rate <= 0 ~ 3,
+                                                  fixed_assets_growth_rate > 0 & fixed_assets_growth_rate <= 50 ~ 4,
+                                                  fixed_assets_growth_rate > 50 ~ 5))
 
 # make it a factor.
 Data_panel_focus <- Data_panel_focus %>%
@@ -823,10 +600,6 @@ Data_panel_focus <- Data_panel_focus %>%
 Data_panel_focus <- Data_panel_focus %>%
   select(-fixed_assets_growth_rate)
 
-```
-
-
-```{r}
 ## Let's plot intang_assets_ratio
 Data_panel_focus %>%
   ggplot(aes(x = intang_assets_ratio)) +
@@ -835,12 +608,8 @@ Data_panel_focus %>%
        x = "Intangible Assets Ratio",
        y = "Count") + xlim(0, 1) + ylim(0, 3000)
 
+# Leave it as it is.
 
-```
-
-Leave it as it is.
-
-```{r}
 ## Let's plot intang_assets_growth_rate
 Data_panel_focus %>%
   ggplot(aes(x = intang_assets_growth_rate)) +
@@ -848,10 +617,9 @@ Data_panel_focus %>%
   labs(title = "Distribution of Intangible Assets Growth Rate",
        x = "Intangible Assets Growth Rate",
        y = "Count") + xlim(-110, 150) + ylim(0, 5000)
-```
-Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
 
-```{r}
+# Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
+
 ## Catagorize intang_assets_growth_rate into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
 
 Data_panel_focus <- Data_panel_focus %>%
@@ -869,10 +637,6 @@ Data_panel_focus <- Data_panel_focus %>%
 Data_panel_focus <- Data_panel_focus %>%
   select(-intang_assets_growth_rate)
 
-```
-
-
-```{r}
 ## Let's plot emp_growth_rate
 Data_panel_focus %>%
   ggplot(aes(x = emp_growth_rate)) +
@@ -881,11 +645,8 @@ Data_panel_focus %>%
        x = "Employee Growth Rate",
        y = "Count") + xlim(-150, 150) + ylim(0, 5000)
 
-```
+# Leave it as it is.
 
-Leave it as it is.
-
-```{r}
 ## Let's plot personnel_exp_per_emp
 Data_panel_focus %>%
   ggplot(aes(x = personnel_exp_per_emp)) +
@@ -893,10 +654,9 @@ Data_panel_focus %>%
   labs(title = "Distribution of Personnel Expense per Employee",
        x = "Personnel Expense per Employee",
        y = "Count") + xlim(0,200000) + ylim(0, 7500)
-```
-Leave it as it is.
 
-```{r}
+# Leave it as it is.
+
 ## Let's plot personnel_exp_per_emp_growth_rate
 Data_panel_focus %>%
   ggplot(aes(x = personnel_exp_per_emp_growth_rate)) +
@@ -905,18 +665,15 @@ Data_panel_focus %>%
        x = "Personnel Expense per Employee Growth Rate",
        y = "Count") + xlim(-150, 150) + ylim(0, 5000)
 
-```
-Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
-
-```{r}
+# Catagorize into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
 ## Catagorize personnel_exp_per_emp_growth_rate into 5 groups: -100%, -99% to -50%, -50% to 0%, 0% to 50%, > 50%.
 
 Data_panel_focus <- Data_panel_focus %>%
   mutate(personnel_exp_per_emp_growth_rate_cat = case_when(personnel_exp_per_emp_growth_rate == -100 ~ 1,
-                                                   personnel_exp_per_emp_growth_rate > -100 & personnel_exp_per_emp_growth_rate <= -50 ~ 2,
-                                                   personnel_exp_per_emp_growth_rate > -50 & personnel_exp_per_emp_growth_rate <= 0 ~ 3,
-                                                   personnel_exp_per_emp_growth_rate > 0 & personnel_exp_per_emp_growth_rate <= 50 ~ 4,
-                                                   personnel_exp_per_emp_growth_rate > 50 ~ 5))
+                                                           personnel_exp_per_emp_growth_rate > -100 & personnel_exp_per_emp_growth_rate <= -50 ~ 2,
+                                                           personnel_exp_per_emp_growth_rate > -50 & personnel_exp_per_emp_growth_rate <= 0 ~ 3,
+                                                           personnel_exp_per_emp_growth_rate > 0 & personnel_exp_per_emp_growth_rate <= 50 ~ 4,
+                                                           personnel_exp_per_emp_growth_rate > 50 ~ 5))
 
 # make it a factor.
 Data_panel_focus <- Data_panel_focus %>%
@@ -926,32 +683,19 @@ Data_panel_focus <- Data_panel_focus %>%
 Data_panel_focus <- Data_panel_focus %>%
   select(-personnel_exp_per_emp_growth_rate)
 
-```
-
-
-## Sample Design (part 2) & Downsampling
-
-
-```{r}
+#### Sample Design (part 2) & Downsampling
 ## Lets' examine fast_growing again
 Data_panel_focus %>% 
   group_by(year) %>%
   count(fast_growing)
-```
 
-The ideal way to build and select the model is to build and evaluate the model within each year. However, due to time constraint and simplicity, I use data only from 2012 to build and choose the model. 2012 is the year with the most observations and the class is also the most balanced. 
-
-```{r}
 ## Use only data from 2012.
 Data_2012 <- Data_panel_focus %>%
   filter(year == 2012)
 
 # remove Data_panel_focus from the environment
 rm(Data_panel_focus)
-```
 
-
-```{r}
 ### Restricting sample and downsampling.
 ## Downsample majority class in each year
 # Randomly filter out 55% of the majority class in each year.
@@ -970,16 +714,10 @@ rm(Data_toss)
 
 Data_2012 <- Data_2012 %>% ungroup()
 
-```
-
-```{r}
 ## Lets' examine fast_growing again
 Data_2012 %>% 
   count(fast_growing)
-```
 
-
-```{r}
 # dropping flags with no variation
 Data_2012 <- Data_2012 %>% ungroup()
 
@@ -989,16 +727,8 @@ variances<- Data_2012 %>%
 
 Data_2012 <- Data_2012 %>%
   select(-one_of(names(variances)[variances]))
-```
 
-
-## Building Models
-
-Three types of models are considered in this exercise. 1) Logistic Regression, 2) LASSO Logistic Regression, and 3) Random Forest. Details of each model are described in the following subsections.
-
-The data is split into a work set and a hold-out set. 15% is used as the hold-out set for performance evaluation.
-
-```{r}
+#### Building Models
 ## Split the data into a work set and a hold-out set.
 set.seed(20231210)
 
@@ -1017,27 +747,8 @@ Data_2012 <- Data_2012 %>%
 Data_2012_hold_out <- Data_2012_hold_out %>%
   select(-comp_id, -year)
 
-```
-
-
-### Logistic Regression
-
-Five logistic regression models are built. General financial and economic knowledge is used to build the models. The following are the predictors used in each model.
-
-1. Model 1: The growth rate of sales-to-total cost from 2011 to 2012 is used as the only predictor. This ratio is used to built the outcome variable. This is to see if past performance can predict future performance.
-
-2. Model 2: Model 1 + variables capturing how well the firms are doing in terms of profitability, liquidity, and solvency. These are the most frequently used financial ratios.
-
-3. Model 3: Model 2 + variables capturing labors, capital, and the past attempt to expand these inputs. These variables may capture the aspiration of the firms to grow.
-
-4. Model 4: Model 3 + industry and interaction terms of the included variables with industry variable. These are important since each industry has different characteristics.
-
-5. Model 5: Model 4. + the remaining variables.
-
-RMSE from the 5-fold cross validation is calculated for each model.
-
-```{r}
-#### Perform 5-fold cross validation on logistic regression models.
+#### Logistic Regression
+### Perform 5-fold cross validation on logistic regression models.
 
 set.seed(20231210)
 # Getting the indices for 5-fold cross validation
@@ -1132,7 +843,7 @@ for (i in 1:5) {
   
   # build the model
   logit_3 <- update(logit_2, . ~ . + fixed_assets_ratio + intang_assets_ratio + emp_avg + emp_growth_rate + flag_miss_emp + personnel_exp_per_emp + flag_personnel_exp_problem + fixed_assets_growth_rate_cat + intang_assets_growth_rate_cat + personnel_exp_per_emp_growth_rate_cat, data = train)
-                    
+  
   # predict the test set
   pred <- predict(logit_3, test, type = "response")
   
@@ -1225,20 +936,11 @@ RMSE_Logit_5 <- sqrt(mean(unlist(results)^2))
 
 # calculate the average AUC
 AUC_Logit_5 <- mean(unlist(results_auc))
-```
 
-Logistic regression model 2 and 3 have the lowest RMSE. 
-
-
-### LASSO Logistic Regression
-
-The parameter lambda is chosen by cross validation.
-
-
-```{r}
+#### LASSO Logistic Regression
 ### Create sets of variable to use in LASSO.
 interaction_terms <- c("ind2_cat*growth_rate", "ind2_cat*ceo_count", "ind2_cat*female", "ind2_cat*inoffice_days", "ind2_cat*urban_m", "ind2_cat*region_m", "ind2_cat*age", "ind2_cat*ceo_age_young", "ind2_cat*ceo_age_middle", 
-  "ind2_cat*gender_m","ind2_cat*origin_m", "ind2_cat*foreign_management", "ind2_cat*inventory_to_sales",  "ind2_cat*net_profit_margin", "ind2_cat*current_ratio_cat", "ind2_cat*equity_to_assets_cat", "ind2_cat*fixed_assets_ratio", "ind2_cat*intang_assets_ratio", "ind2_cat*emp_avg", "ind2_cat*emp_growth_rate", "ind2_cat*personnel_exp_per_emp", "ind2_cat*fixed_assets_growth_rate_cat", "ind2_cat*intang_assets_growth_rate_cat", "ind2_cat*personnel_exp_per_emp_growth_rate_cat")
+                       "ind2_cat*gender_m","ind2_cat*origin_m", "ind2_cat*foreign_management", "ind2_cat*inventory_to_sales",  "ind2_cat*net_profit_margin", "ind2_cat*current_ratio_cat", "ind2_cat*equity_to_assets_cat", "ind2_cat*fixed_assets_ratio", "ind2_cat*intang_assets_ratio", "ind2_cat*emp_avg", "ind2_cat*emp_growth_rate", "ind2_cat*personnel_exp_per_emp", "ind2_cat*fixed_assets_growth_rate_cat", "ind2_cat*intang_assets_growth_rate_cat", "ind2_cat*personnel_exp_per_emp_growth_rate_cat")
 
 # Original variable
 LASSOVAR <- colnames(Data_2012)
@@ -1262,13 +964,6 @@ levels(Data_2012$fast_growing) <- c("No", "Yes")
 
 levels(Data_2012_hold_out$fast_growing) <- c("No", "Yes")
 
-```
-
-
-
-
-
-```{r}
 ### Fit LASSO logistic regression model using glmnet 5 fold cross validation.
 set.seed(20231210)
 
@@ -1290,7 +985,7 @@ customSummary <- function(data, lev = NULL, model = NULL) {
   # Combine the metrics into a vector
   c(default_metrics, additional_metric)
 }
-  
+
 
 # setting up the control
 control <- trainControl(method = "cv", number = 5, summaryFunction = customSummary, classProbs = TRUE)
@@ -1301,25 +996,18 @@ lambda <- 10^seq(-0.1, -4, length = 20)
 grid <- expand.grid("alpha" = 1, lambda = lambda)
 
 logit_lasso_model <- train(formula(paste0("fast_growing ~", paste0(Lasso_vars, collapse = " + "))),
-    data = Data_2012,
-    method = "glmnet",
-    preProcess = c("center", "scale"),
-    family = "binomial",
-    trControl = control,
-    tuneGrid = grid,
-    na.action=na.exclude,  metric = "ROC")
+                           data = Data_2012,
+                           method = "glmnet",
+                           preProcess = c("center", "scale"),
+                           family = "binomial",
+                           trControl = control,
+                           tuneGrid = grid,
+                           na.action=na.exclude,  metric = "ROC")
 
 
 # Get the optimal value of lambda
 lambda_optimal <- logit_lasso_model$bestTune$lambda
 
-```
-
-```{r}
-print(logit_lasso_model)
-```
-
-```{r}
 ## Report the optimal lambda.
 cat("Optimal lambda:", lambda_optimal, "\n")
 
@@ -1328,20 +1016,12 @@ RMSE_lasso_5f <- logit_lasso_model$resample$rmse
 
 ## RMSE
 RMSE_lasso <- sqrt(mean(RMSE_lasso_5f^2))
-```
 
-```{r}
 ## Extract AUC from the model.
 AUC_lasso <- mean(logit_lasso_model$resample$ROC)
-```
 
+#### Random Forest
 
-
-### Random Forest
-
-Next, I consider the random forest model. 5-fold cross-validation is used to tune the parameters (mtry: Number of variables randomly sampled as candidates at each split)
-
-```{r}
 ## Setting up the random forest
 # specifying the range of values for the tuning parameters
 
@@ -1358,17 +1038,13 @@ set.seed(20231210)
 
 # I set ntree = 150 for the sake of computation time.
 model_RF <- train(fast_growing ~ ., data = Data_2012[,!names(Data_2012) %in% c("ind")], method = "rf", trControl = control, tuneGrid = grid, ntree = 150, metric = "ROC")
-```
 
-```{r}
 ## get the optimal value of mtry
 mtry_optimal <- model_RF$bestTune$mtry
 
 # print
 cat("Optimal mtry:", mtry_optimal, "\n")
-```
 
-```{r}
 ### Extracting RMSE and AUC from the model.
 RMSE_RF_5f <- model_RF$resample$rmse
 
@@ -1378,13 +1054,7 @@ RMSE_RF <- sqrt(mean(RMSE_RF_5f^2))
 ## AUC
 AUC_RF <- mean(model_RF$resample$ROC)
 
-```
-
 ### Compiling the results
-
-First, the results (RMSE, AUC) of all 5 logistic regression models are compiled.
-
-```{r}
 ## Compile the results.
 # model name
 Model_Name <- c("Logit 1", "Logit 2", "Logit 3", "Logit 4", "Logit 5")
@@ -1403,15 +1073,6 @@ Logit_results <- data.frame(Model_Name, RMSE_Logit, AUC_Logit)
 kable(Logit_results, digits = 4, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 
-
-
-```
-
-Based on both RMSE and AUC, Logit 2 is the best model.
-
-Next, compare the results with the LASSO and random forest models.
-
-```{r}
 ### Compare results of Logit 2, LASSO, and Random Forest.
 # model name
 Model_Name <- c("Logit 2", "LASSO", "Random Forest")
@@ -1429,25 +1090,7 @@ All_results <- data.frame(Model_Name, RMSE, AUC)
 kable(All_results, digits = 4, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 
-```
-
-Random forest has the best performance in terms of both RMSE and AUC, followed by LAASO and Logit 2.
-
-## Part 2: Minimizing expected loss.
-
-When making false positive, the government is giving support to the firms that are not actually fast growing. In general, this reduces the allocative efficiency in the market. In worse case scenario, the supoort goes to waste as firms exit the market or the support is the factor allowing zombie firms to sustain. 
-
-On the other hand, false negative in this case is not as costly because firms that are actually fast growing should be able to grow without the support. They may only grow slower without the government support.
-
-Based on the argument above, I would arbitrarily set the cost of false positive to be 1.3 times higher than that of false negative. I normalize the cost of false negative to be 100\$. Hence, the cost of false positive is 130\$.
-
-The expected loss function is as follows:
-
-$ E(Loss) = Cost of False Positive * P(False Positive) + Cost of False Negative * P(False Negative) $
-
-Next, I find the optimal threshold that minimizes the expected loss for each model (Logit 2, LASSO, and Random Forest) using 5-fold cross-validation.
-
-```{r}
+#### Part 2: Minimizing expected loss.
 ### Find the optimal threshold that minimizes the expected loss.
 
 # cost of false positive
@@ -1507,9 +1150,9 @@ for (i in seq_along(thresholds)) {
     
     # Calculate the expected loss
     total_loss <- (cost_fp * P_fp) + (cost_fn * P_fn)
-
-  # Calculate average loss across folds for the current threshold
-  cv_losses[i] <- total_loss / num_folds
+    
+    # Calculate average loss across folds for the current threshold
+    cv_losses[i] <- total_loss / num_folds
   }
 }
 
@@ -1519,16 +1162,9 @@ optimal_threshold_logit <- thresholds[which.min(cv_losses)]
 # Store the minimum expected loss
 min_loss_logit <- min(cv_losses)
 
-
-```
-
-```{r}
 # Print the optimal threshold for logit 2
 cat("Optimal Threshold for Logit 2:", optimal_threshold_logit, "\n")
-```
 
-
-```{r}
 ## LASSO
 tuned_logit_lasso_model <- logit_lasso_model$finalModel
 
@@ -1575,9 +1211,9 @@ for (i in seq_along(thresholds)) {
     
     # Calculate the expected loss
     total_loss <- (cost_fp * P_fp) + (cost_fn * P_fn)
-
-  # Calculate average loss across folds for the current threshold
-  cv_losses[i] <- total_loss / num_folds
+    
+    # Calculate average loss across folds for the current threshold
+    cv_losses[i] <- total_loss / num_folds
   }
 }
 
@@ -1587,16 +1223,9 @@ optimal_threshold_lasso <- thresholds[which.min(cv_losses)]
 # Store the minimum expected loss
 min_loss_lasso <- min(cv_losses)
 
-```
-
-
-```{r}
 # Print the optimal threshold for LASSO
 cat("Optimal Threshold for LASSO:", optimal_threshold_lasso, "\n")
 
-```
-
-```{r}
 ## Random Forest
 
 cv_losses <- numeric(length(thresholds))
@@ -1645,9 +1274,9 @@ for (i in seq_along(thresholds)) {
     
     # Calculate the expected loss
     total_loss <- (cost_fp * P_fp) + (cost_fn * P_fn)
-
-  # Calculate average loss across folds for the current threshold
-  cv_losses[i] <- total_loss / num_folds
+    
+    # Calculate average loss across folds for the current threshold
+    cv_losses[i] <- total_loss / num_folds
   }
 }
 
@@ -1657,17 +1286,9 @@ optimal_threshold_RF <- thresholds[which.min(cv_losses)]
 # Store the minimum expected loss
 min_loss_RF <- min(cv_losses)
 
-
-```
-
-```{r}
 # Print the optimal threshold for Random Forest
 cat("Optimal Threshold for Random Forest:", optimal_threshold_RF, "\n")
 
-
-```
-
-```{r}
 ### Compiling the results into a table.
 
 # Create a data frame with the results
@@ -1680,13 +1301,8 @@ results_loss <- data.frame(
 # Print the results
 kable(results_loss, digits = 4, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-```
 
-
-
-
-## Part 3: Confusion Matrix
-```{r}
+#### Part 3: Confusion Matrix
 ## Re-fit the models on the entire work set
 # Fit the logit model
 
@@ -1701,9 +1317,6 @@ predictors <- Data_2012[, -which(names(Data_2012) %in% c("fast_growing"))]
 
 best_RF_model <- randomForest(x = predictors, y = Data_2012$fast_growing, ntree = 150, mtry = mtry_optimal)
 
-```
-
-```{r}
 ## Make predictions on the hold-out set.
 
 # Make predictions using the logit model
@@ -1718,9 +1331,6 @@ Data_2012_hold_out$predicted_probs_lasso <- predict(best_lasso_model, newdata = 
 # Make predictions using the random forest model
 Data_2012_hold_out$predicted_probs_RF <- predict(best_RF_model, newdata = Data_2012_hold_out, type = "prob")[, 2]
 
-```
-
-```{r}
 ### Get number of true positives, false positives, true negatives, and false negatives for each model, using the optimal threshold of each model.
 
 ## Logit
@@ -1762,9 +1372,6 @@ Data_2012_hold_out$True_neg_RF <- ifelse(Data_2012_hold_out$fast_growing == "No"
 # Create dummy: false negative_RF.
 Data_2012_hold_out$False_neg_RF <- ifelse(Data_2012_hold_out$fast_growing == "Yes" & Data_2012_hold_out$predicted_probs_RF <= optimal_threshold_RF, 1, 0)
 
-```
-
-```{r}
 ### Calculate each element of the confusion matrix for each model.
 
 ## Logit
@@ -1859,9 +1466,9 @@ total_obs_RF <- total_pos_RF + total_neg_RF
 
 # Create matrix for confusion matrix_logit.
 confusion_matrix_logit <- matrix(c(true_pos_logit, false_pos_logit, total_predicted_pos_logit,
-               false_neg_logit, true_neg_logit, total_predicted_neg_logit,
-               total_pos_logit, total_neg_logit, total_obs_logit),
-             nrow = 3, ncol = 3, byrow = TRUE)
+                                   false_neg_logit, true_neg_logit, total_predicted_neg_logit,
+                                   total_pos_logit, total_neg_logit, total_obs_logit),
+                                 nrow = 3, ncol = 3, byrow = TRUE)
 
 # Divide each element in confusion matrix_lasso by total number of observations and x 100 to get percentage.
 confusion_matrix_logit <- (confusion_matrix_logit / total_obs_logit) * 100
@@ -1879,10 +1486,6 @@ rownames(confusion_matrix_logit) <- c("Predicted Fast Growing", "Predicted Not F
 kable(confusion_matrix_logit, digits = 2, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
 
-
-```
-
-```{r}
 ## Examine the top values of predicted probabilities for the fast growing class.
 # Create dataframe of predicted probabilities for fast growing class.
 predicted_probs_logit <- Data_2012_hold_out %>%
@@ -1894,17 +1497,13 @@ kable(head(predicted_probs_logit , 5))
 
 # We can see that all of predicted probabilities fall below the optimal threshold. 
 
-```
-
-
-```{r}
 ### Make Confusion Matrix for LASSO. (3 colunms: Actual Fast Growing, Actual Not Fast Growing, Total; 3 rows: Predicted Fast Growing, Predicted Not Fast Growing, Total)
 
 # Create matrix for confusion matrix_lasso.
 confusion_matrix_lasso <- matrix(c(true_pos_lasso, false_pos_lasso, total_predicted_pos_lasso,
-               false_neg_lasso, true_neg_lasso, total_predicted_neg_lasso,
-               total_pos_lasso, total_neg_lasso, total_obs_lasso),
-             nrow = 3, ncol = 3, byrow = TRUE)
+                                   false_neg_lasso, true_neg_lasso, total_predicted_neg_lasso,
+                                   total_pos_lasso, total_neg_lasso, total_obs_lasso),
+                                 nrow = 3, ncol = 3, byrow = TRUE)
 
 # Divide each element in confusion matrix_lasso by total number of observations and x 100 to get percentage.
 confusion_matrix_lasso <- confusion_matrix_lasso / total_obs_lasso * 100
@@ -1921,9 +1520,7 @@ rownames(confusion_matrix_lasso) <- c("Predicted Fast Growing", "Predicted Not F
 # Print confusion matrix_lasso.
 kable(confusion_matrix_lasso, digits = 2, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-```
 
-```{r}
 ## Examine the top values of predicted probabilities for the fast growing class.
 # Create dataframe of predicted probabilities for fast growing class.
 predicted_probs_lasso <- Data_2012_hold_out %>%
@@ -1932,16 +1529,14 @@ predicted_probs_lasso <- Data_2012_hold_out %>%
 
 
 kable(head(predicted_probs_lasso , 5))
-```
 
-```{r}
 ### Make Confusion Matrix for Random Forest. (3 colunms: Actual Fast Growing, Actual Not Fast Growing, Total; 3 rows: Predicted Fast Growing, Predicted Not Fast Growing, Total)
 
 # Create matrix for confusion matrix_RF.
 confusion_matrix_RF <- matrix(c(true_pos_RF, false_pos_RF, total_predicted_pos_RF,
-               false_neg_RF, true_neg_RF, total_predicted_neg_RF,
-               total_pos_RF, total_neg_RF, total_obs_RF),
-             nrow = 3, ncol = 3, byrow = TRUE)
+                                false_neg_RF, true_neg_RF, total_predicted_neg_RF,
+                                total_pos_RF, total_neg_RF, total_obs_RF),
+                              nrow = 3, ncol = 3, byrow = TRUE)
 
 # Divide each element in confusion matrix_lasso by total number of observations and x 100 to get percentage.
 confusion_matrix_RF <- confusion_matrix_RF / total_obs_RF * 100
@@ -1958,9 +1553,7 @@ rownames(confusion_matrix_RF) <- c("Predicted Fast Growing", "Predicted Not Fast
 # Print confusion matrix_RF.
 kable(confusion_matrix_RF, digits = 2, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-```
 
-```{r}
 ## Examine the top values of predicted probabilities for the fast growing class.
 # Create dataframe of predicted probabilities for fast growing class.
 predicted_probs_RF <- Data_2012_hold_out %>%
@@ -1969,9 +1562,7 @@ predicted_probs_RF <- Data_2012_hold_out %>%
 
 
 kable(head(predicted_probs_RF , 5))
-```
 
-```{r}
 ### Calculate the expected loss for each model on the hold-out set.
 
 ## Logit
@@ -2004,10 +1595,6 @@ false_neg_rate_RF <- false_neg_RF / total_obs_RF
 # Expected loss.
 expected_loss_RF <- false_pos_rate_RF * cost_fp + false_neg_rate_RF * cost_fn
 
-```
-
-
-```{r}
 ### Obtain RMSE and AUC in the hold-out set.
 ## Logit
 
@@ -2032,9 +1619,7 @@ RMSE_RF_hold_out <- RMSE((as.numeric(Data_2012_hold_out$fast_growing)-1), Data_2
 
 # AUC.
 AUC_RF_hold_out <- auc(roc(Data_2012_hold_out$fast_growing, Data_2012_hold_out$predicted_probs_RF))
-```
 
-```{r}
 ### Compile the results of RMSE, AUC, and expected loss into a table.
 
 # Create dataframe of RMSE, AUC, and expected loss.
@@ -2046,23 +1631,11 @@ RMSE_AUC_expected_loss <- data.frame(model = c("Logit", "LASSO", "Random Forest"
 # Print the table
 kable(RMSE_AUC_expected_loss, digits = 4, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-```
 
 
-
-# Task 2
-
-We divide data into two dataset. First one contains only fimrs in manufacturing sector and the second one contains firms in all other sectors. *ind* = 2 is manufacturing sector. *ind* = 3 is service sector. sector.
-
-I pick the logistic regression model 2 to carry out classification in both datasets as it is the model that minimize the expected loss in Task 1. 
-
-The expected loss and the optimal threshold are the same as before. 
-
-```{r}
+###### Task 2
 Data_2012 %>% count(ind)
-```
 
-```{r}
 ## Seperate both work and hold-out sets.
 
 # Create work set for manufacturing sector.
@@ -2080,9 +1653,7 @@ Data_2012_service <- Data_2012 %>%
 # Create hold-out set for service sector.
 Data_2012_hold_out_service <- Data_2012_hold_out %>%
   filter(ind == 3)
-```
 
-```{r}
 #### Let's do stuff with manufacturing sector first.
 ### We already predict. 
 
@@ -2130,9 +1701,7 @@ false_neg_rate_logit_manu <- false_neg_logit_manu / total_obs_logit_manu
 
 # Get expected loss for logit.
 expected_loss_logit_manu <- false_pos_rate_logit_manu * cost_fp + false_neg_rate_logit_manu * cost_fn
-```
 
-```{r}
 ### Create Summary Table for Manufacturing Sector. (RMSE, AUC, Expected Loss) (1 rows x 3 columns)
 
 Summary_logit_manu <- data.frame(RMSE = RMSE_logit_manu, AUC = AUC_logit_manu, Expected_Loss = expected_loss_logit_manu)
@@ -2140,10 +1709,6 @@ Summary_logit_manu <- data.frame(RMSE = RMSE_logit_manu, AUC = AUC_logit_manu, E
 # Add row names.
 rownames(Summary_logit_manu) <- "Manufacturing Sector"
 
-
-
-```
-```{r}
 #### Do the same for service sector.
 ### We already predict.
 
@@ -2192,9 +1757,7 @@ false_neg_rate_logit_service <- false_neg_logit_service / total_obs_logit_servic
 
 # Get expected loss for logit.
 expected_loss_logit_service <- false_pos_rate_logit_service * cost_fp + false_neg_rate_logit_service * cost_fn
-```
 
-```{r}
 ### Create Summary Table for Service Sector. (RMSE, AUC, Expected Loss) (1 rows x 3 columns)
 
 Summary_logit_service <- data.frame(RMSE = RMSE_logit_service, AUC = AUC_logit_service, Expected_Loss = expected_loss_logit_service)
@@ -2202,9 +1765,6 @@ Summary_logit_service <- data.frame(RMSE = RMSE_logit_service, AUC = AUC_logit_s
 # Add row names.
 rownames(Summary_logit_service) <- "Service Sector"
 
-```
-
-```{r}
 ## rbind the two summary tables.
 Summary_logit <- rbind(Summary_logit_manu, Summary_logit_service)
 
@@ -2215,6 +1775,3 @@ Summary_logit$AUC <- as.numeric(Summary_logit$AUC)
 # Print the results
 kable(Summary_logit, digits = 4, align = "c") %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed", "bordered"))
-```
-
-
